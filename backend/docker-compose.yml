@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      USERS_DB_NAME: ${USERS_DB_NAME}
+      USERS_DB_USER: ${USERS_DB_USER}
+      USERS_DB_PASSWORD: ${USERS_DB_PASSWORD}
+      METERS_DB_NAME: ${METERS_DB_NAME}
+      METERS_DB_USER: ${METERS_DB_USER}
+      METERS_DB_PASSWORD: ${METERS_DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${USERS_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  users:
+    build:
+      context: ./users
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${USERS_DB_USER}:${USERS_DB_PASSWORD}@postgres:5432/${USERS_DB_NAME}
+      ADMIN_SECRET: ${USERS_ADMIN_SECRET}
+      SECRET_KEY: ${SECRET_KEY}
+    ports:
+      - "${USERS_PORT:-8001}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  meters:
+    build:
+      context: ./meters
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${METERS_DB_USER}:${METERS_DB_PASSWORD}@postgres:5432/${METERS_DB_NAME}
+      SECRET_KEY: ${SECRET_KEY}
+    ports:
+      - "${METERS_PORT:-8002}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
