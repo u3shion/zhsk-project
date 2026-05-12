@@ -27,3 +27,7 @@ fi
 if [ -n "$METERS_DB_NAME" ] && [ -n "$METERS_DB_USER" ] && [ -n "$METERS_DB_PASSWORD" ]; then
     create_user_and_db "$METERS_DB_NAME" "$METERS_DB_USER" "$METERS_DB_PASSWORD"
 fi
+
+if [ -n "$ANNOUNCEMENTS_DB_NAME" ] && [ -n "$ANNOUNCEMENTS_DB_USER" ] && [ -n "$ANNOUNCEMENTS_DB_PASSWORD" ]; then
+    create_user_and_db "$ANNOUNCEMENTS_DB_NAME" "$ANNOUNCEMENTS_DB_USER" "$ANNOUNCEMENTS_DB_PASSWORD"
+fi

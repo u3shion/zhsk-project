@@ -26,26 +26,42 @@ backend/
 │   │   └── user.py          # ORM-модель User
 │   └── users/
 │       └── router.py        # эндпоинты /users/me
-└── meters/                  # сервис показаний и счётчиков (порт 8002)
+├── meters/                  # сервис показаний и счётчиков (порт 8002)
+│   ├── main.py
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── .env
+│   ├── auth/
+│   │   ├── security.py      # decode_token (только декодирование JWT)
+│   │   └── dependencies.py  # get_current_user → TokenData, require_admin
+│   ├── core/
+│   │   ├── config.py
+│   │   └── database.py
+│   ├── models/
+│   │   ├── reading.py       # ORM-модель MeterReading
+│   │   └── water_meter.py   # ORM-модель WaterMeter
+│   ├── readings/
+│   │   ├── schemas.py
+│   │   └── router.py        # эндпоинты /readings/...
+│   └── water_meters/
+│       ├── schemas.py
+│       └── router.py        # эндпоинты /water-meters/...
+└── announcements/           # сервис объявлений (порт 8003)
     ├── main.py
     ├── Dockerfile
     ├── requirements.txt
-    ├── .env                 # для локального запуска
+    ├── .env
     ├── auth/
-    │   ├── security.py      # decode_token (только декодирование JWT)
-    │   └── dependencies.py  # get_current_user → TokenData, require_admin
+    │   ├── security.py
+    │   └── dependencies.py
     ├── core/
-    │   ├── config.py        # переменные окружения
-    │   └── database.py      # SQLAlchemy engine, сессия, get_db
+    │   ├── config.py
+    │   └── database.py
     ├── models/
-    │   ├── reading.py       # ORM-модель MeterReading
-    │   └── water_meter.py   # ORM-модель WaterMeter
-    ├── readings/
-    │   ├── schemas.py       # Pydantic-схемы показаний
-    │   └── router.py        # эндпоинты /readings/...
-    └── water_meters/
-        ├── schemas.py       # Pydantic-схемы счётчиков
-        └── router.py        # эндпоинты /water-meters/...
+    │   └── announcement.py  # ORM-модель Announcement
+    └── announcements/
+        ├── schemas.py
+        └── router.py        # эндпоинты /announcements/...
 ```
 
 ### Аутентификация между сервисами
@@ -175,10 +191,11 @@ JWT-токен выдаётся сервисом `users` и принимаетс
 docker compose up --build
 ```
 
-| Сервис   | URL                       |
-|----------|---------------------------|
-| `users`  | http://localhost:8001      |
-| `meters` | http://localhost:8002      |
+| Сервис          | URL                       |
+|-----------------|---------------------------|
+| `users`         | http://localhost:8001      |
+| `meters`        | http://localhost:8002      |
+| `announcements` | http://localhost:8003      |
 
 ### Локально (без Docker)
 ```bash
@@ -193,8 +210,14 @@ cd backend/meters
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8002
+
+# announcements (в другом терминале)
+cd backend/announcements
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8003
 ```
-Требует запущенного PostgreSQL с базами `users_db` и `meters_db` и соответствующими пользователями (параметры из `.env` каждого сервиса).
+Требует запущенного PostgreSQL с базами `users_db`, `meters_db`, `announcements_db` и соответствующими пользователями (параметры из `.env` каждого сервиса).
 
 ---
 
@@ -386,3 +409,101 @@ uvicorn main:app --reload --port 8002
 
 ---
 
+## Сервис `announcements`
+
+### Переменные окружения
+
+| Переменная     | Описание                           | Пример                                                                            |
+|----------------|------------------------------------|-----------------------------------------------------------------------------------|
+| `DATABASE_URL` | Строка подключения к PostgreSQL    | `postgresql+psycopg2://announcements_service:pw@localhost:5432/announcements_db`  |
+| `SECRET_KEY`   | Ключ подписи JWT (общий с `users`) | `supersecretkey`                                                                  |
+
+### Модель `Announcement`
+
+| Поле          | Тип      | Описание                                                        |
+|---------------|----------|-----------------------------------------------------------------|
+| `id`          | int PK   | Первичный ключ                                                  |
+| `author_id`   | int      | ID автора из JWT                                                |
+| `author_role` | str      | Роль автора на момент создания (`admin` / `resident`)           |
+| `type`        | str      | `news` — новость от управления, `ad` — объявление жильца        |
+| `subtype`     | str?     | Только для `ad`: `service` — услуга, `noise` — шум              |
+| `title`       | str      | Заголовок                                                       |
+| `content`     | str      | Текст объявления                                                |
+| `is_active`   | bool     | Видимость (мягкое удаление)                                     |
+| `created_at`  | datetime | Время создания (авто)                                           |
+| `updated_at`  | datetime | Время последнего изменения (авто)                               |
+
+**Права на создание:**
+- `admin` — может создавать и `news`, и `ad`
+- `resident` — только `ad`; поле `subtype` обязательно
+
+### API
+
+Все эндпоинты требуют заголовок `Authorization: Bearer <token>`.
+
+---
+
+#### `POST /announcements/`
+
+Создание объявления.
+
+**Тело запроса (news от admin):**
+```json
+{ "type": "news", "title": "Плановое отключение воды", "content": "5 мая с 10:00 до 14:00" }
+```
+
+**Тело запроса (ad от жильца):**
+```json
+{ "type": "ad", "subtype": "noise", "title": "Ремонт", "content": "Буду шуметь 10 мая с 10:00 до 18:00" }
+```
+
+**Ответ `201`:** объект `AnnouncementResponse`.  
+**Ошибки:** `403` — жилец пытается создать `news`.
+
+---
+
+#### `GET /announcements/`
+
+Список активных объявлений с пагинацией.
+
+| Query-параметр | По умолчанию | Описание                       |
+|----------------|--------------|--------------------------------|
+| `type`         | —            | Фильтр: `news` / `ad`          |
+| `subtype`      | —            | Фильтр: `service` / `noise`    |
+| `page`         | `1`          | Номер страницы                 |
+| `page_size`    | `20`         | Размер страницы (макс. 100)    |
+
+**Ответ `200`:**
+```json
+{ "items": [...], "total": 42, "page": 1, "page_size": 20 }
+```
+
+---
+
+#### `GET /announcements/{id}`
+
+Получение одного объявления. **Ошибки:** `404`.
+
+---
+
+#### `PUT /announcements/{id}`
+
+Редактирование. Разрешено автору или любому `admin`. Все поля опциональны.
+
+```json
+{ "title": "Новый заголовок", "content": "Новый текст", "subtype": "service" }
+```
+
+**Ответ `200`:** обновлённый объект. **Ошибки:** `403`, `404`.
+
+---
+
+#### `DELETE /announcements/{id}`
+
+Мягкое удаление (`is_active = false`). Разрешено автору или любому `admin`.
+
+**Ответ `200`:**
+```json
+{ "message": "Announcement deleted", "id": 5 }
+```
+**Ошибки:** `403`, `404`.

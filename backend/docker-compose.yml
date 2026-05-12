@@ -11,6 +11,9 @@ services:
       METERS_DB_NAME: ${METERS_DB_NAME}
       METERS_DB_USER: ${METERS_DB_USER}
       METERS_DB_PASSWORD: ${METERS_DB_PASSWORD}
+      ANNOUNCEMENTS_DB_NAME: ${ANNOUNCEMENTS_DB_NAME}
+      ANNOUNCEMENTS_DB_USER: ${ANNOUNCEMENTS_DB_USER}
+      ANNOUNCEMENTS_DB_PASSWORD: ${ANNOUNCEMENTS_DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
@@ -51,6 +54,22 @@ services:
       SECRET_KEY: ${SECRET_KEY}
     ports:
       - "${METERS_PORT:-8002}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  announcements:
+    build:
+      context: ./announcements
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${ANNOUNCEMENTS_DB_USER}:${ANNOUNCEMENTS_DB_PASSWORD}@postgres:5432/${ANNOUNCEMENTS_DB_NAME}
+      SECRET_KEY: ${SECRET_KEY}
+    ports:
+      - "${ANNOUNCEMENTS_PORT:-8003}:8000"
     depends_on:
       postgres:
         condition: service_healthy
