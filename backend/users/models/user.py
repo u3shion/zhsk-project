@@ -12,3 +12,7 @@ class User(Base):
     role = Column(String, default="resident")
     full_name = Column(String, nullable=True)
     apartment = Column(String, nullable=True)
+
+    notification_channel = Column(String, nullable=False, default="email")  # email | sms | vk
+    phone = Column(String, nullable=True)
+    vk_id = Column(String, nullable=True)

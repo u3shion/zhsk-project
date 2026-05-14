@@ -1,9 +1,11 @@
 from datetime import date, timedelta
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from auth.dependencies import TokenData, get_current_user, require_admin
+from core.config import SERVICE_KEY
 from core.database import get_db
 from models.water_meter import WaterMeter
 from water_meters.schemas import WaterMeterCreate, WaterMeterResponse, WaterMeterUpdate
@@ -12,6 +14,11 @@ from water_meters.schemas import WaterMeterCreate, WaterMeterResponse, WaterMete
 router = APIRouter(prefix="/water-meters", tags=["water-meters"])
 
 VERIFICATION_WARNING_DAYS = 60
+
+
+def _check_service_key(x_service_key: Optional[str] = Header(None)):
+    if x_service_key != SERVICE_KEY:
+        raise HTTPException(status_code=403, detail="Invalid service key")
 
 
 @router.post("/", response_model=WaterMeterResponse, status_code=201)
@@ -116,3 +123,36 @@ def get_summary(
         "needs_attention_count": len(needs_attention),
         "meters": result,
     }
+
+
+@router.get("/expiring-soon", include_in_schema=False)
+def get_expiring_soon(
+    days: int = Query(60, ge=1, le=365),
+    db: Session = Depends(get_db),
+    _: None = Depends(_check_service_key),
+):
+    """Внутренний эндпоинт для сервиса уведомлений."""
+    today = date.today()
+    deadline = today + timedelta(days=days)
+
+    meters = (
+        db.query(WaterMeter)
+        .filter(
+            WaterMeter.is_active == True,
+            WaterMeter.next_verification_at <= deadline,
+        )
+        .order_by(WaterMeter.next_verification_at)
+        .all()
+    )
+
+    return [
+        {
+            "user_id": m.user_id,
+            "apartment": m.apartment,
+            "meter_type": m.meter_type,
+            "serial_number": m.serial_number,
+            "next_verification_at": m.next_verification_at.isoformat(),
+            "days_left": (m.next_verification_at - today).days,
+        }
+        for m in meters
+    ]
