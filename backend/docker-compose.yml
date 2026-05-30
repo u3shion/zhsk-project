@@ -90,6 +90,11 @@ services:
       SERVICE_KEY: ${SERVICE_KEY}
       USERS_SERVICE_URL: http://users:8000
       METERS_SERVICE_URL: http://meters:8000
+      VK_GROUP_TOKEN: ${VK_GROUP_TOKEN}
+      VK_API_VERSION: ${VK_API_VERSION:-5.199}
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     ports:
       - "${NOTIFICATIONS_PORT:-8004}:8000"
     depends_on:

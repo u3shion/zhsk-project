@@ -17,3 +17,6 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "ЖСК <noreply@example.com>")
+
+VK_GROUP_TOKEN = os.getenv("VK_GROUP_TOKEN", "")
+VK_API_VERSION = os.getenv("VK_API_VERSION", "5.199")
