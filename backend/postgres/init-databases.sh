@@ -35,3 +35,7 @@ fi
 if [ -n "$NOTIFICATIONS_DB_NAME" ] && [ -n "$NOTIFICATIONS_DB_USER" ] && [ -n "$NOTIFICATIONS_DB_PASSWORD" ]; then
     create_user_and_db "$NOTIFICATIONS_DB_NAME" "$NOTIFICATIONS_DB_USER" "$NOTIFICATIONS_DB_PASSWORD"
 fi
+
+if [ -n "$CHAT_DB_NAME" ] && [ -n "$CHAT_DB_USER" ] && [ -n "$CHAT_DB_PASSWORD" ]; then
+    create_user_and_db "$CHAT_DB_NAME" "$CHAT_DB_USER" "$CHAT_DB_PASSWORD"
+fi

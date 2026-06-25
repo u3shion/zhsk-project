@@ -17,6 +17,9 @@ services:
       NOTIFICATIONS_DB_NAME: ${NOTIFICATIONS_DB_NAME}
       NOTIFICATIONS_DB_USER: ${NOTIFICATIONS_DB_USER}
       NOTIFICATIONS_DB_PASSWORD: ${NOTIFICATIONS_DB_PASSWORD}
+      CHAT_DB_NAME: ${CHAT_DB_NAME}
+      CHAT_DB_USER: ${CHAT_DB_USER}
+      CHAT_DB_PASSWORD: ${CHAT_DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
@@ -139,6 +142,22 @@ services:
       - 8.8.4.4
     ports:
       - "${NOTIFICATIONS_PORT:-8004}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  chat:
+    build:
+      context: ./chat
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${CHAT_DB_USER}:${CHAT_DB_PASSWORD}@postgres:5432/${CHAT_DB_NAME}
+      SECRET_KEY: ${SECRET_KEY}
+    ports:
+      - "${CHAT_PORT:-8005}:8000"
     depends_on:
       postgres:
         condition: service_healthy

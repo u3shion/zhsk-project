@@ -723,3 +723,119 @@ VK_GROUP_TOKEN=vk1.a.xxxxxxxxxxxxxxxxxxxx
 ```
 
 В логах проверить результат: `GET /notifications/history?user_id=1`
+
+---
+
+## Сервис `chat`
+
+Чат на WebSocket с комнатами и инвайтами. Порт **8005**.
+
+```
+chat/
+├── main.py
+├── Dockerfile
+├── requirements.txt
+├── auth/
+│   ├── security.py      # decode_token (JWT)
+│   └── dependencies.py  # get_current_user из query-параметра token
+├── core/
+│   ├── config.py
+│   └── database.py
+├── models/
+│   └── chat.py          # Room, RoomMember, Message
+├── rooms/
+│   ├── schemas.py
+│   └── router.py        # REST-эндпоинты /rooms/...
+└── ws/
+    ├── manager.py       # ConnectionManager — in-memory хранилище соединений
+    └── router.py        # WebSocket-эндпоинт /ws/rooms/{room_id}
+```
+
+### Переменные окружения
+
+| Переменная     | Описание                             | Пример                                                          |
+|----------------|--------------------------------------|-----------------------------------------------------------------|
+| `DATABASE_URL` | Строка подключения к PostgreSQL      | `postgresql+psycopg2://chat_service:pw@localhost:5432/chat_db`  |
+| `SECRET_KEY`   | Ключ JWT (общий с `users`)           | `supersecretkey`                                                |
+
+### Модели
+
+**`Room`** — комната чата.
+
+| Поле          | Тип      | Описание                        |
+|---------------|----------|---------------------------------|
+| `id`          | int PK   |                                 |
+| `name`        | str      | Название комнаты                |
+| `description` | str?     | Описание (опционально)          |
+| `created_by`  | int      | user_id создателя               |
+| `is_active`   | bool     | Мягкое удаление                 |
+| `created_at`  | datetime |                                 |
+
+**`RoomMember`** — участник комнаты.
+
+| Поле        | Тип      | Описание        |
+|-------------|----------|-----------------|
+| `room_id`   | int FK   |                 |
+| `user_id`   | int      |                 |
+| `joined_at` | datetime |                 |
+
+**`Message`** — сообщение в комнате.
+
+| Поле         | Тип      | Описание                    |
+|--------------|----------|-----------------------------|
+| `room_id`    | int FK   |                             |
+| `user_id`    | int      |                             |
+| `content`    | text     | Текст сообщения             |
+| `created_at` | datetime |                             |
+| `is_deleted` | bool     | Мягкое удаление             |
+
+### REST API
+
+Все REST-эндпоинты требуют `?token=<jwt>` в query-параметрах (тот же Bearer JWT, что и у остальных сервисов).
+
+| Метод    | Путь                        | Описание                                  |
+|----------|-----------------------------|-------------------------------------------|
+| `POST`   | `/rooms/`                   | Создать комнату (создатель автоматически добавляется как участник) |
+| `GET`    | `/rooms/`                   | Список своих комнат                       |
+| `GET`    | `/rooms/{id}`               | Данные комнаты (только для участников)    |
+| `POST`   | `/rooms/{id}/invite`        | Пригласить пользователя по `user_id`      |
+| `DELETE` | `/rooms/{id}/leave`         | Покинуть комнату                          |
+| `GET`    | `/rooms/{id}/members`       | Список участников                         |
+| `GET`    | `/rooms/{id}/messages`      | История сообщений (пагинация по `before_id`, `limit`) |
+
+### WebSocket
+
+```
+ws://localhost:8005/ws/rooms/{room_id}?token=<jwt>
+```
+
+Аутентификация и проверка членства происходят при подключении. При ошибке соединение закрывается с кодом:
+- `4001` — невалидный токен
+- `4003` — не участник комнаты
+- `4004` — комната не найдена
+
+#### Входящие события (клиент → сервер)
+
+```json
+{ "type": "message", "content": "Привет всем!" }
+{ "type": "delete",  "message_id": 42 }
+{ "type": "ping" }
+```
+
+#### Исходящие события (сервер → клиент)
+
+```json
+{ "type": "message",  "id": 1, "room_id": 1, "user_id": 5, "content": "Привет!", "created_at": "..." }
+{ "type": "deleted",  "message_id": 42, "room_id": 1 }
+{ "type": "presence", "user_id": 5, "event": "joined", "online": [3, 5, 7] }
+{ "type": "presence", "user_id": 5, "event": "left",   "online": [3, 7] }
+{ "type": "pong" }
+{ "type": "error",    "detail": "..." }
+```
+
+Удалить сообщение может его автор или любой `admin`. Удаление — мягкое (`is_deleted = true`), все участники получают событие `deleted`.
+
+### Архитектурные особенности
+
+- `ConnectionManager` — чистый in-memory singleton (asyncio lock). При горизонтальном масштабировании нужно заменить на pub/sub (Redis Pub/Sub или аналог).
+- Токен передаётся как query-параметр `?token=` — стандартная практика для WebSocket, так как браузеры не поддерживают заголовок `Authorization` при WS-подключении.
