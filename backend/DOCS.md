@@ -413,10 +413,15 @@ uvicorn main:app --reload --port 8003
 
 ### Переменные окружения
 
-| Переменная     | Описание                           | Пример                                                                            |
-|----------------|------------------------------------|-----------------------------------------------------------------------------------|
-| `DATABASE_URL` | Строка подключения к PostgreSQL    | `postgresql+psycopg2://announcements_service:pw@localhost:5432/announcements_db`  |
-| `SECRET_KEY`   | Ключ подписи JWT (общий с `users`) | `supersecretkey`                                                                  |
+| Переменная         | Описание                              | Пример                                                       |
+|--------------------|--------------------------------------|--------------------------------------------------------------|
+| `DATABASE_URL`     | Строка подключения к PostgreSQL       | `postgresql+psycopg2://announcements_service:pw@localhost:5432/announcements_db` |
+| `SECRET_KEY`       | Ключ подписи JWT (общий с `users`)   | `supersecretkey`                                             |
+| `MINIO_ENDPOINT`   | S3-эндпоинт MinIO                    | `minio:9000`                                                 |
+| `MINIO_ACCESS_KEY` | Ключ доступа MinIO                    | `zhsk_minio`                                                 |
+| `MINIO_SECRET_KEY` | Секретный ключ MinIO                  | `***`                                                        |
+| `MINIO_BUCKET`     | Имя бакета для фото                  | `announcements-photos`                                        |
+| `MINIO_PUBLIC_URL` | Базовый URL для публичных ссылок      | `http://localhost:9000`                                       |
 
 ### Модель `Announcement`
 
@@ -429,6 +434,7 @@ uvicorn main:app --reload --port 8003
 | `subtype`     | str?     | Только для `ad`: `service` — услуга, `noise` — шум              |
 | `title`       | str      | Заголовок                                                       |
 | `content`     | str      | Текст объявления                                                |
+| `photo_url`   | str?     | Публичная ссылка на фото в MinIO (опционально)                  |
 | `is_active`   | bool     | Видимость (мягкое удаление)                                     |
 | `created_at`  | datetime | Время создания (авто)                                           |
 | `updated_at`  | datetime | Время последнего изменения (авто)                               |
@@ -445,20 +451,27 @@ uvicorn main:app --reload --port 8003
 
 #### `POST /announcements/`
 
-Создание объявления.
+Создание объявления. Принимает `multipart/form-data` — текстовые поля Form, файл — как `File`.
 
-**Тело запроса (news от admin):**
-```json
-{ "type": "news", "title": "Плановое отключение воды", "content": "5 мая с 10:00 до 14:00" }
-```
+**Форма (news от admin):**
+| Поле     | Тип      | Обязательно |
+|----------|----------|-------------|
+| `type`   | str      | да          |
+| `title`  | str      | да          |
+| `content`| str      | да          |
+| `photo`  | File     | нет         |
 
-**Тело запроса (ad от жильца):**
-```json
-{ "type": "ad", "subtype": "noise", "title": "Ремонт", "content": "Буду шуметь 10 мая с 10:00 до 18:00" }
-```
+**Форма (ad от жильца):**
+| Поле     | Тип      | Обязательно |
+|----------|----------|-------------|
+| `type`   | `ad`     | да          |
+| `subtype`| `service` / `noise` | да   |
+| `title`  | str      | да          |
+| `content`| str      | да          |
+| `photo`  | File     | нет         |
 
 **Ответ `201`:** объект `AnnouncementResponse`.  
-**Ошибки:** `403` — жилец пытается создать `news`.
+**Ошибки:** `400` — файл слишком большой (> 5 МБ) или неподдерживаемый тип; `403` — жилец пытается создать `news`.
 
 ---
 
@@ -488,11 +501,15 @@ uvicorn main:app --reload --port 8003
 
 #### `PUT /announcements/{id}`
 
-Редактирование. Разрешено автору или любому `admin`. Все поля опциональны.
+Редактирование. Разрешено автору или любому `admin`. Все поля опциональны. Если передан новый `photo`, старый файл из MinIO удаляется.
 
-```json
-{ "title": "Новый заголовок", "content": "Новый текст", "subtype": "service" }
-```
+**Форма:**
+| Поле     | Тип      | Обязательно |
+|----------|----------|-------------|
+| `title`  | str      | нет         |
+| `content`| str      | нет         |
+| `subtype`| str      | нет         |
+| `photo`  | File     | нет         |
 
 **Ответ `200`:** обновлённый объект. **Ошибки:** `403`, `404`.
 
@@ -552,6 +569,7 @@ uvicorn main:app --reload --port 8003
 ```json
 { "notification_channel": "email", "phone": "79001234567", "vk_id": "123456" }
 ```
+
 
 ### API
 

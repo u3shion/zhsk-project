@@ -1,42 +1,78 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from auth.dependencies import TokenData, get_current_user
 from core.database import get_db
 from models.announcement import Announcement
 from announcements.schemas import (
-    AnnouncementCreate,
     AnnouncementResponse,
     AnnouncementsListResponse,
-    AnnouncementType,
-    AnnouncementUpdate,
 )
+from storage import delete_photo, upload_photo
+
+
+ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/png", "image/webp"}
+MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024
 
 
 router = APIRouter(prefix="/announcements", tags=["announcements"])
 
 
+def _validate_photo_type(photo: UploadFile | None) -> None:
+    if photo is None:
+        return
+    if photo.content_type not in ALLOWED_PHOTO_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type: {photo.content_type}. Allowed: JPEG, PNG, WebP.",
+        )
+
+
 @router.post("/", response_model=AnnouncementResponse, status_code=201)
-def create_announcement(
-    data: AnnouncementCreate,
+async def create_announcement(
+    type: str = Form(...),
+    subtype: Optional[str] = Form(None),
+    title: str = Form(...),
+    content: str = Form(...),
+    photo: Optional[UploadFile] = File(default=None),
     db: Session = Depends(get_db),
     current_user: TokenData = Depends(get_current_user),
 ):
-    if current_user.role == "resident" and data.type != AnnouncementType.ad:
+    if current_user.role == "resident" and type != "news":
+        raise HTTPException(status_code=403, detail="Residents can only create ads")
+
+    if type == "ad" and subtype not in ("service", "noise"):
         raise HTTPException(
-            status_code=403,
-            detail="Residents can only create ads",
+            status_code=400,
+            detail="subtype is required for ads (service or noise)",
+        )
+
+    _validate_photo_type(photo)
+
+    photo_url: Optional[str] = None
+    if photo is not None:
+        content_bytes = await photo.read()
+        if len(content_bytes) > MAX_PHOTO_SIZE_BYTES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File too large: {len(content_bytes)} bytes. Maximum: {MAX_PHOTO_SIZE_BYTES} bytes.",
+            )
+        photo_url = upload_photo(
+            content_bytes,
+            photo.filename or "photo.jpg",
+            photo.content_type or "image/jpeg",
         )
 
     announcement = Announcement(
         author_id=current_user.user_id,
         author_role=current_user.role,
-        type=data.type,
-        subtype=data.subtype,
-        title=data.title,
-        content=data.content,
+        type=type,
+        subtype=subtype,
+        title=title,
+        content=content,
+        photo_url=photo_url,
     )
     db.add(announcement)
     db.commit()
@@ -48,8 +84,8 @@ def create_announcement(
 def list_announcements(
     type: Optional[str] = None,
     subtype: Optional[str] = None,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page: int = 1,
+    page_size: int = 20,
     db: Session = Depends(get_db),
     current_user: TokenData = Depends(get_current_user),
 ):
@@ -87,9 +123,12 @@ def get_announcement(
 
 
 @router.put("/{announcement_id}", response_model=AnnouncementResponse)
-def update_announcement(
+async def update_announcement(
     announcement_id: int,
-    data: AnnouncementUpdate,
+    title: Optional[str] = Form(default=None),
+    content: Optional[str] = Form(default=None),
+    subtype: Optional[str] = Form(default=None),
+    photo: Optional[UploadFile] = File(default=None),
     db: Session = Depends(get_db),
     current_user: TokenData = Depends(get_current_user),
 ):
@@ -103,12 +142,29 @@ def update_announcement(
     if announcement.author_id != current_user.user_id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not allowed to edit this announcement")
 
-    if data.title is not None:
-        announcement.title = data.title
-    if data.content is not None:
-        announcement.content = data.content
-    if data.subtype is not None:
-        announcement.subtype = data.subtype
+    _validate_photo_type(photo)
+
+    if title is not None:
+        announcement.title = title
+    if content is not None:
+        announcement.content = content
+    if subtype is not None:
+        announcement.subtype = subtype
+
+    if photo is not None:
+        content_bytes = await photo.read()
+        if len(content_bytes) > MAX_PHOTO_SIZE_BYTES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File too large: {len(content_bytes)} bytes. Maximum: {MAX_PHOTO_SIZE_BYTES} bytes.",
+            )
+        if announcement.photo_url:
+            delete_photo(announcement.photo_url)
+        announcement.photo_url = upload_photo(
+            content_bytes,
+            photo.filename or "photo.jpg",
+            photo.content_type or "image/jpeg",
+        )
 
     db.commit()
     db.refresh(announcement)
@@ -130,6 +186,9 @@ def delete_announcement(
 
     if announcement.author_id != current_user.user_id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not allowed to delete this announcement")
+
+    if announcement.photo_url:
+        delete_photo(announcement.photo_url)
 
     announcement.is_active = False
     db.commit()

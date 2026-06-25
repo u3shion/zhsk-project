@@ -43,6 +43,7 @@ class AnnouncementResponse(BaseModel):
     subtype: Optional[str]
     title: str
     content: str
+    photo_url: Optional[str]
     is_active: bool
     created_at: datetime
     updated_at: datetime

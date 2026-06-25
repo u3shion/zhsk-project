@@ -13,6 +13,7 @@ class Announcement(Base):
     subtype = Column(String, nullable=True)             # service | noise  (только для ad)
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
+    photo_url = Column(String, nullable=True)           # URL загруженного фото в MinIO
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
