@@ -64,10 +64,12 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="auth-card">
-        <div className="success-icon">✓</div>
-        <h2>Регистрация прошла успешно!</h2>
-        <p>Сейчас вы будете перенаправлены на страницу входа...</p>
+      <div className="auth-page">
+        <div className="auth-card">
+          <div className="success-icon">✓</div>
+          <h2>Регистрация прошла успешно!</h2>
+          <p>Сейчас вы будете перенаправлены на страницу входа...</p>
+        </div>
       </div>
     )
   }
@@ -118,22 +120,6 @@ export default function RegisterPage() {
               autoComplete="new-password"
               placeholder="Повторите пароль"
               value={form.confirmPassword}
-              onChange={handleChange}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="adminSecret">
-              Секрет председателя{' '}
-              <span className="optional">(только для администраторов)</span>
-            </label>
-            <input
-              id="adminSecret"
-              name="adminSecret"
-              type="password"
-              placeholder="Оставьте пустым, если вы жилец"
-              value={form.adminSecret}
               onChange={handleChange}
               disabled={loading}
             />

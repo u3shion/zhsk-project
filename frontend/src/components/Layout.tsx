@@ -14,11 +14,6 @@ export default function Layout({ children }: LayoutProps) {
     return location.pathname === path
   }
 
-  function handleLogout() {
-    localStorage.removeItem('token')
-    window.location.href = '/login'
-  }
-
   return (
     <div className="layout">
       <aside className="sidebar">
@@ -33,9 +28,6 @@ export default function Layout({ children }: LayoutProps) {
             Профиль
           </Link>
         </nav>
-        <button className="logout-btn" onClick={handleLogout}>
-          Выйти
-        </button>
       </aside>
       <main className="main-content">
         {children}

@@ -10,6 +10,7 @@
 
 .profile-page {
   justify-content: center;
+  margin: 0px 100px 0px 100px;
 }
 
 .profile-title {
@@ -145,6 +146,32 @@
   color: #c0392b;
   font-size: 15px;
 }
+
+.buttons {
+  display: flex;
+  align-items: start;
+}
+
+.logout-btn {
+  width: 100%;
+  margin: 4px 0px 0px 60px;
+  padding: 12px;
+  background: rgba(247, 47, 47, 0.882);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: rgb(255, 255, 255);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.logout-btn:hover {
+  background: rgba(195, 60, 60, 0.915);
+  color: #fff;
+}
+
+
 
 /* Upgrade section */
 .upgrade-card {

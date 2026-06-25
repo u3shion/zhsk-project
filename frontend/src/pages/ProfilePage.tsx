@@ -52,6 +52,11 @@ export default function ProfilePage() {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
+  function handleLogout() {
+    localStorage.removeItem('token')
+    window.location.href = '/login'
+  }
+
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -223,9 +228,13 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <button type="submit" className="btn-primary" disabled={saving}>
-            {saving ? 'Сохранение...' : 'Сохранить изменения'}
-          </button>
+          <div className="buttons">
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? 'Сохранение...' : 'Сохранить изменения'}
+            </button>
+
+            <button className="logout-btn" onClick={handleLogout}>Выйти</button>
+          </div>
         </form>
       </div>
 
