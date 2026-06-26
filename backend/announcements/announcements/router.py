@@ -2,6 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
+import json
 
 from auth.dependencies import TokenData, get_current_user
 from core.database import get_db
@@ -30,40 +31,39 @@ def _validate_photo_type(photo: UploadFile | None) -> None:
         )
 
 
+async def _upload_single_photo(photo: UploadFile) -> str:
+    content_bytes = await photo.read()
+    if len(content_bytes) > MAX_PHOTO_SIZE_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large: {len(content_bytes)} bytes. Maximum: {MAX_PHOTO_SIZE_BYTES} bytes.",
+        )
+    return upload_photo(
+        content_bytes,
+        photo.filename or "photo.jpg",
+        photo.content_type or "image/jpeg",
+    )
+
+
 @router.post("/", response_model=AnnouncementResponse, status_code=201)
 async def create_announcement(
     type: str = Form(...),
     subtype: Optional[str] = Form(None),
     title: str = Form(...),
     content: str = Form(...),
-    photo: Optional[UploadFile] = File(default=None),
+    photos: list[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
     current_user: TokenData = Depends(get_current_user),
 ):
-    if current_user.role == "resident" and type != "news":
-        raise HTTPException(status_code=403, detail="Residents can only create ads")
+    if current_user.role == "resident" and type == "news":
+        raise HTTPException(status_code=403, detail="Only admins can publish news")
 
-    if type == "ad" and subtype not in ("service", "noise"):
-        raise HTTPException(
-            status_code=400,
-            detail="subtype is required for ads (service or noise)",
-        )
+    for photo in photos:
+        _validate_photo_type(photo)
 
-    _validate_photo_type(photo)
-
-    photo_url: Optional[str] = None
-    if photo is not None:
-        content_bytes = await photo.read()
-        if len(content_bytes) > MAX_PHOTO_SIZE_BYTES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"File too large: {len(content_bytes)} bytes. Maximum: {MAX_PHOTO_SIZE_BYTES} bytes.",
-            )
-        photo_url = upload_photo(
-            content_bytes,
-            photo.filename or "photo.jpg",
-            photo.content_type or "image/jpeg",
-        )
+    photo_urls: list[str] = []
+    for photo in photos:
+        photo_urls.append(await _upload_single_photo(photo))
 
     announcement = Announcement(
         author_id=current_user.user_id,
@@ -72,7 +72,7 @@ async def create_announcement(
         subtype=subtype,
         title=title,
         content=content,
-        photo_url=photo_url,
+        photo_urls=json.dumps(photo_urls) if photo_urls else None,
     )
     db.add(announcement)
     db.commit()
@@ -158,13 +158,20 @@ async def update_announcement(
                 status_code=400,
                 detail=f"File too large: {len(content_bytes)} bytes. Maximum: {MAX_PHOTO_SIZE_BYTES} bytes.",
             )
-        if announcement.photo_url:
-            delete_photo(announcement.photo_url)
-        announcement.photo_url = upload_photo(
+        old_urls: list[str] = []
+        if announcement.photo_urls:
+            try:
+                old_urls = json.loads(announcement.photo_urls)
+            except Exception:
+                pass
+        for url in old_urls:
+            delete_photo(url)
+        new_url = upload_photo(
             content_bytes,
             photo.filename or "photo.jpg",
             photo.content_type or "image/jpeg",
         )
+        announcement.photo_urls = json.dumps([new_url])
 
     db.commit()
     db.refresh(announcement)
@@ -187,8 +194,13 @@ def delete_announcement(
     if announcement.author_id != current_user.user_id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not allowed to delete this announcement")
 
-    if announcement.photo_url:
-        delete_photo(announcement.photo_url)
+    if announcement.photo_urls:
+        try:
+            urls: list[str] = json.loads(announcement.photo_urls)
+            for url in urls:
+                delete_photo(url)
+        except Exception:
+            pass
 
     announcement.is_active = False
     db.commit()

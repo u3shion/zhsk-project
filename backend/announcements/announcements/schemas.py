@@ -43,12 +43,25 @@ class AnnouncementResponse(BaseModel):
     subtype: Optional[str]
     title: str
     content: str
-    photo_url: Optional[str]
+    photo_urls: list[str]
     is_active: bool
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @field_validator("photo_urls", mode="before")
+    @classmethod
+    def parse_photo_urls(cls, v):
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            import json
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return []
 
 
 class AnnouncementsListResponse(BaseModel):
