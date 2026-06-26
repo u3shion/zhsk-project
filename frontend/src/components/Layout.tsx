@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import ProfileIcon from '../assets/ProfileIcon'
 import NewsIcon from '../assets/NewsIcon'
+import MetersIcon from '../assets/MetersIcon'
 import './Layout.css'
 
 interface LayoutProps {
@@ -26,6 +27,10 @@ export default function Layout({ children }: LayoutProps) {
           <Link to="/news" className={`nav-item ${isActive('/news') ? 'active' : ''}`}>
             <NewsIcon className="nav-icon" />
             Новости
+          </Link>
+          <Link to="/meters" className={`nav-item ${isActive('/meters') ? 'active' : ''}`}>
+            <MetersIcon className="nav-icon" />
+            Показания
           </Link>
           <Link to="/profile" className={`nav-item ${isActive('/profile') ? 'active' : ''}`}>
             <ProfileIcon className="nav-icon" />

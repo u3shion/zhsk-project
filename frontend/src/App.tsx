@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
 import NewsPage from './pages/NewsPage'
+import MetersPage from './pages/MetersPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token')
@@ -45,6 +46,10 @@ function App() {
         <Route
           path="/news"
           element={<ProtectedRoute><NewsPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/meters"
+          element={<ProtectedRoute><MetersPage /></ProtectedRoute>}
         />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
