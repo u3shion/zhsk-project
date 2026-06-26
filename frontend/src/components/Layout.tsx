@@ -23,6 +23,10 @@ export default function Layout({ children }: LayoutProps) {
             <NewsIcon className="nav-icon" />
             Главная
           </Link>
+          <Link to="/news" className={`nav-item ${isActive('/news') ? 'active' : ''}`}>
+            <NewsIcon className="nav-icon" />
+            Новости
+          </Link>
           <Link to="/profile" className={`nav-item ${isActive('/profile') ? 'active' : ''}`}>
             <ProfileIcon className="nav-icon" />
             Профиль
