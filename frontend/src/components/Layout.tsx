@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import ProfileIcon from '../assets/ProfileIcon'
+import HomeIcon from '../assets/HomeIcon'
 import NewsIcon from '../assets/NewsIcon'
 import MetersIcon from '../assets/MetersIcon'
 import './Layout.css'
@@ -21,7 +22,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="sidebar-logo">ЖСК-32</div>
         <nav className="sidebar-nav">
           <Link to="/dashboard" className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}>
-            <NewsIcon className="nav-icon" />
+            <HomeIcon className="nav-icon" />
             Главная
           </Link>
           <Link to="/news" className={`nav-item ${isActive('/news') ? 'active' : ''}`}>
