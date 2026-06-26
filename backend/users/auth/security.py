@@ -20,7 +20,7 @@ def verify_password(password: str, hashed: str):
     return pwd_context.verify(password, hashed)
 
 
-def create_token(data: dict, expires_minutes: int = 60):
+def create_token(data: dict, expires_minutes: int = 45000):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
     to_encode["exp"] = expire
