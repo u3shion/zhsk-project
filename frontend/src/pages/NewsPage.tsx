@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import './NewsPage.css'
 import { announcementsApi, type AnnouncementResponse } from '../api/announcements'
 import { profileApi } from '../api/profile'
+import NotifyModal from '../components/NotifyModal'
 import Toast from '../components/Toast'
 
 function formatDate(iso: string) {
@@ -175,6 +176,7 @@ export default function NewsPage() {
   const [news, setNews] = useState<AnnouncementResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [showNotify, setShowNotify] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [userRole, setUserRole] = useState<string>('resident')
 
@@ -208,9 +210,16 @@ export default function NewsPage() {
     <div className="news-page">
       <div className="news-header">
         <h1 className="news-title">Новости</h1>
-        <button className="publish-btn" onClick={() => setShowModal(true)}>
-          + Новая публикация
-        </button>
+        <div className="news-header-actions">
+          {userRole === 'admin' && (
+            <button className="publish-btn publish-btn--secondary" onClick={() => setShowNotify(true)}>
+              Оповещение
+            </button>
+          )}
+          <button className="publish-btn" onClick={() => setShowModal(true)}>
+            + Новая публикация
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -258,6 +267,10 @@ export default function NewsPage() {
           onSuccess={handleSuccess}
           userRole={userRole}
         />
+      )}
+
+      {showNotify && (
+        <NotifyModal onClose={() => setShowNotify(false)} />
       )}
 
       {toast && (

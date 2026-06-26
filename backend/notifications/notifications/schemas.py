@@ -15,6 +15,20 @@ class BroadcastRequest(BaseModel):
     message: str
 
 
+class ResidentResponse(BaseModel):
+    id: int
+    full_name: Optional[str]
+    apartment: Optional[str]
+    notification_channel: Optional[str]
+    email: Optional[str]
+    phone: Optional[str]
+    vk_id: Optional[str]
+
+
+class ResidentsResponse(BaseModel):
+    residents: list[ResidentResponse]
+
+
 class NotificationLogResponse(BaseModel):
     id: int
     user_id: int

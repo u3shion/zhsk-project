@@ -12,6 +12,8 @@ from models.notification_log import NotificationLog
 from notifications.schemas import (
     BroadcastRequest,
     NotificationHistoryResponse,
+    ResidentResponse,
+    ResidentsResponse,
     SendRequest,
 )
 
@@ -41,6 +43,14 @@ def _get_all_residents() -> list[dict]:
     )
     resp.raise_for_status()
     return resp.json()
+
+
+@router.get("/residents", response_model=ResidentsResponse)
+def get_residents(
+    current_user: TokenData = Depends(require_admin),
+):
+    residents = _get_all_residents()
+    return {"residents": residents}
 
 
 def _send_and_log(
