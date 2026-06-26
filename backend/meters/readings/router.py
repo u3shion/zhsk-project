@@ -7,6 +7,7 @@ from auth.dependencies import TokenData, get_current_user, require_admin
 from core.database import get_db
 from models.reading import MeterReading
 from readings.schemas import MeterType, ReadingCreate, ReadingResponse, ReadingsListResponse
+from services.external_client import external_client
 
 
 router = APIRouter(prefix="/readings", tags=["readings"])
@@ -15,7 +16,7 @@ ALL_METER_TYPES = [t.value for t in MeterType]
 
 
 @router.post("/", response_model=ReadingResponse, status_code=201)
-def submit_reading(
+async def submit_reading(
     data: ReadingCreate,
     db: Session = Depends(get_db),
     current_user: TokenData = Depends(get_current_user),
@@ -41,6 +42,18 @@ def submit_reading(
     db.add(reading)
     db.commit()
     db.refresh(reading)
+
+    try:
+        await external_client.submit_reading(
+            meter_type=data.meter_type,
+            value=data.value,
+            period=data.period,
+            apartment=data.apartment,
+            user_id=current_user.user_id,
+        )
+    except Exception:
+        pass
+
     return reading
 
 
