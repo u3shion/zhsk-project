@@ -1,4 +1,4 @@
-export default function ProfileIcon({ className }: { className?: string }) {
+export default function ProfileIcon({ className: _className }: { className?: string }) {
   return (
     <svg 
         xmlns="http://www.w3.org/2000/svg" 

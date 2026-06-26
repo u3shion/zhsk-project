@@ -63,6 +63,33 @@ export interface ReadingsAllResponse {
   total: number
 }
 
+export type VerificationMeterType = 'cold_water' | 'hot_water'
+
+export interface VerificationCreate {
+  apartment: string
+  meter_type: VerificationMeterType
+  verification_date: string
+}
+
+export interface VerificationResponse {
+  id: number
+  user_id: number
+  apartment: string
+  meter_type: string
+  verification_date: string
+  submitted_at: string
+}
+
+export interface VerificationsListResponse {
+  verifications: VerificationResponse[]
+  total: number
+}
+
+export interface VerificationsAllResponse {
+  verifications: VerificationResponse[]
+  total: number
+}
+
 export const metersApi = {
   submit: (data: ReadingCreate) =>
     request<ReadingResponse>('POST', '/readings/', data),
@@ -89,6 +116,23 @@ export const metersApi = {
       `/readings/all${query ? `?${query}` : ''}`,
     )
   },
+
+  submitVerification: (data: VerificationCreate) =>
+    request<VerificationResponse>('POST', '/readings/verifications', data),
+
+  listVerifications: () =>
+    request<VerificationsListResponse>('GET', '/readings/verifications/me'),
+
+  listAllVerifications: (params?: { apartment?: string; meter_type?: string }) => {
+    const qs = new URLSearchParams()
+    if (params?.apartment) qs.set('apartment', params.apartment)
+    if (params?.meter_type) qs.set('meter_type', params.meter_type)
+    const query = qs.toString()
+    return request<VerificationsAllResponse>(
+      'GET',
+      `/readings/verifications/all${query ? `?${query}` : ''}`,
+    )
+  },
 }
 
 export const METER_TYPE_LABELS: Record<MeterType, string> = {
@@ -113,4 +157,55 @@ export const METER_TYPE_PLACEHOLDERS: Record<MeterType, string> = {
   hot_water: 'например: 98.765',
   heating: 'например: 0.5432',
   gas: 'например: 234.56',
+}
+
+export const VERIFICATION_TYPE_LABELS: Record<VerificationMeterType, string> = {
+  cold_water: 'Холодная вода',
+  hot_water: 'Горячая вода',
+}
+
+export type WaterMeterType = 'cold' | 'hot'
+
+export interface WaterMeterCreate {
+  apartment: string
+  meter_type: WaterMeterType
+  serial_number: string
+  installed_at: string
+  next_verification_at: string
+}
+
+export interface WaterMeterUpdate {
+  last_verified_at: string
+  next_verification_at: string
+}
+
+export interface WaterMeterResponse {
+  id: number
+  user_id: number
+  apartment: string
+  meter_type: string
+  serial_number: string
+  installed_at: string
+  last_verified_at: string | null
+  next_verification_at: string
+  is_active: boolean
+}
+
+export const WATER_METER_TYPE_LABELS: Record<WaterMeterType, string> = {
+  cold: 'Холодная вода',
+  hot: 'Горячая вода',
+}
+
+export const waterMetersApi = {
+  register: (data: WaterMeterCreate) =>
+    request<WaterMeterResponse>('POST', '/water-meters/', data),
+
+  list: () =>
+    request<WaterMeterResponse[]>('GET', '/water-meters/me'),
+
+  update: (meterId: number, data: WaterMeterUpdate) =>
+    request<WaterMeterResponse>('PUT', `/water-meters/${meterId}`, data),
+
+  deactivate: (meterId: number) =>
+    request<{ message: string; id: number }>('DELETE', `/water-meters/${meterId}`),
 }

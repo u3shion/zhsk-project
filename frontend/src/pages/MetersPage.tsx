@@ -4,9 +4,13 @@ import './MetersPage.css'
 import {
   metersApi,
   type MeterType,
+  type WaterMeterType,
+  type WaterMeterResponse,
   METER_TYPE_LABELS,
   METER_TYPE_UNITS,
   METER_TYPE_PLACEHOLDERS,
+  WATER_METER_TYPE_LABELS,
+  waterMetersApi,
 } from '../api/meters'
 import { profileApi } from '../api/profile'
 import { isAdmin } from '../api/auth'
@@ -14,10 +18,16 @@ import Toast from '../components/Toast'
 
 const METER_TYPES: MeterType[] = ['electricity', 'cold_water', 'hot_water', 'heating', 'gas']
 
+type Section = 'readings' | 'verification'
+
 function formatPeriod(period: string) {
   const [year, month] = period.split('-')
   const date = new Date(Number(year), Number(month) - 1)
   return date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
+}
+
+function formatDateInput(d: Date) {
+  return d.toISOString().split('T')[0]
 }
 
 function currentPeriod() {
@@ -36,11 +46,27 @@ export default function MetersPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [submittedReadings, setSubmittedReadings] = useState<{ meter_type: string; value: number }[]>([])
 
+  // поверка / замена счётчиков воды
+  const [section, setSection] = useState<Section>('readings')
+  const [selectedMeter, setSelectedMeter] = useState<WaterMeterResponse | null>(null)
+  const [cardMode, setCardMode] = useState<'verify' | 'replace' | null>(null)
+  const [verifyDate, setVerifyDate] = useState(formatDateInput(new Date()))
+  const [nextVerifyDate, setNextVerifyDate] = useState('')
+  const [replaceConfirm, setReplaceConfirm] = useState(false)
+
+  // регистрация счётчиков воды
+  const [waterMeterType, setWaterMeterType] = useState<WaterMeterType>('cold')
+  const [serialNumber, setSerialNumber] = useState('')
+  const [installedAt, setInstalledAt] = useState(formatDateInput(new Date()))
+  const [nextVerificationAt, setNextVerificationAt] = useState('')
+  const [myWaterMeters, setMyWaterMeters] = useState<WaterMeterResponse[]>([])
+
   useEffect(() => {
     profileApi.getMe().then(u => {
       if (u.apartment) setApartment(u.apartment)
     }).catch(() => {})
     loadReadings()
+    loadWaterMeters()
   }, [])
 
   async function loadReadings() {
@@ -48,6 +74,90 @@ export default function MetersPage() {
       const res = await metersApi.list({ period: currentPeriod() })
       setSubmittedReadings(res.readings.map(r => ({ meter_type: r.meter_type, value: r.value })))
     } catch {}
+  }
+
+  async function loadWaterMeters() {
+    try {
+      const res = await waterMetersApi.list()
+      setMyWaterMeters(res)
+    } catch {}
+  }
+
+  async function handleVerifySubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!selectedMeter) return
+    if (!verifyDate) { setSubmitError('Укажите дату последней поверки'); return }
+    if (!nextVerifyDate) { setSubmitError('Укажите дату следующей поверки'); return }
+    if (nextVerifyDate <= verifyDate) {
+      setSubmitError('Дата следующей поверки должна быть позже даты последней')
+      return
+    }
+
+    setLoading(true)
+    try {
+      await waterMetersApi.update(selectedMeter.id, {
+        last_verified_at: verifyDate,
+        next_verification_at: nextVerifyDate,
+      })
+      setSelectedMeter(null)
+      setCardMode(null)
+      await loadWaterMeters()
+      showToast('Поверка сохранена', 'success')
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Ошибка при сохранении')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleReplaceConfirm(e: React.FormEvent) {
+    e.preventDefault()
+    if (!selectedMeter) return
+
+    setLoading(true)
+    try {
+      await waterMetersApi.deactivate(selectedMeter.id)
+      setSelectedMeter(null)
+      setCardMode(null)
+      showToast('Счётчик удалён. Зарегистрируйте новый.', 'success')
+      await loadWaterMeters()
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Ошибка при удалении')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleWaterMeterSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSubmitError('')
+    if (!apartment.trim()) { setSubmitError('Укажите номер квартиры'); return }
+    if (!serialNumber.trim()) { setSubmitError('Укажите заводской номер'); return }
+    if (!installedAt) { setSubmitError('Укажите дату установки'); return }
+    if (!nextVerificationAt) { setSubmitError('Укажите дату следующей поверки'); return }
+    if (nextVerificationAt <= installedAt) {
+      setSubmitError('Дата следующей поверки должна быть позже даты установки')
+      return
+    }
+
+    setLoading(true)
+    try {
+      await waterMetersApi.register({
+        apartment: apartment.trim(),
+        meter_type: waterMeterType,
+        serial_number: serialNumber.trim(),
+        installed_at: installedAt,
+        next_verification_at: nextVerificationAt,
+      })
+      setSerialNumber('')
+      setNextVerificationAt('')
+      await loadWaterMeters()
+      showToast(`${WATER_METER_TYPE_LABELS[waterMeterType]} - счётчик зарегистрирован`, 'success')
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Ошибка при отправке')
+    } finally {
+      setLoading(false)
+    }
   }
 
   function showToast(message: string, type: 'success' | 'error') {
@@ -96,104 +206,356 @@ export default function MetersPage() {
         )}
       </div>
 
+      {/* Переключатель секции */}
+      <div className="section-tabs">
+        <button
+          type="button"
+          className={`section-tab ${section === 'readings' ? 'active' : ''}`}
+          onClick={() => setSection('readings')}
+        >
+          Показания
+        </button>
+        <button
+          type="button"
+          className={`section-tab ${section === 'verification' ? 'active' : ''}`}
+          onClick={() => setSection('verification')}
+        >
+          Поверка / замена
+        </button>
+      </div>
+
       <div className="meters-layout">
-        <form className="meters-form" onSubmit={handleSubmit} noValidate>
-          <div className="form-card">
-            <h2 className="form-card-title">Новое показание</h2>
+        {section === 'readings' ? (
+          <>
+            <form className="meters-form" onSubmit={handleSubmit} noValidate>
+              <div className="form-card">
+                <h2 className="form-card-title">Новое показание</h2>
 
-            <div className="form-group">
-              <label className="form-label">Период</label>
-              <input
-                type="month"
-                className="form-input period-input"
-                value={period}
-                max={currentPeriod()}
-                onChange={e => setPeriod(e.target.value)}
-              />
-              <span className="field-hint">Формат: ГГГГ-ММ</span>
-            </div>
+                <div className="form-group">
+                  <label className="form-label">Период</label>
+                  <input
+                    type="month"
+                    className="form-input period-input"
+                    value={period}
+                    max={currentPeriod()}
+                    onChange={e => setPeriod(e.target.value)}
+                  />
+                  <span className="field-hint">Формат: ГГГГ-ММ</span>
+                </div>
 
-            <div className="form-group">
-              <label className="form-label">Тип счётчика</label>
-              <div className="meter-type-grid">
-                {METER_TYPES.map(type => (
-                  <button
-                    key={type}
-                    type="button"
-                    className={`meter-type-btn ${meterType === type ? 'active' : ''} ${submittedTypes.has(type) ? 'submitted' : ''}`}
-                    onClick={() => setMeterType(type)}
-                  >
-                    {METER_TYPE_LABELS[type]}
-                    {submittedTypes.has(type) && <span className="meter-type-check">✓</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
+                <div className="form-group">
+                  <label className="form-label">Тип счётчика</label>
+                  <div className="meter-type-grid">
+                    {METER_TYPES.map(type => (
+                      <button
+                        key={type}
+                        type="button"
+                        className={`meter-type-btn ${meterType === type ? 'active' : ''} ${submittedTypes.has(type) ? 'submitted' : ''}`}
+                        onClick={() => setMeterType(type)}
+                      >
+                        {METER_TYPE_LABELS[type]}
+                        {submittedTypes.has(type) && <span className="meter-type-check">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            <div className="form-group">
-              <label className="form-label">
-                Показания — {METER_TYPE_LABELS[meterType]}
-                <span className="field-unit"> ({METER_TYPE_UNITS[meterType]})</span>
-              </label>
-              <input
-                type="text"
-                inputMode="decimal"
-                className="form-input value-input"
-                placeholder={METER_TYPE_PLACEHOLDERS[meterType]}
-                value={value}
-                onChange={e => setValue(e.target.value)}
-              />
-              <span className="field-hint">Введите текущее показание счётчика</span>
-            </div>
+                <div className="form-group">
+                  <label className="form-label">
+                    Показания — {METER_TYPE_LABELS[meterType]}
+                    <span className="field-unit"> ({METER_TYPE_UNITS[meterType]})</span>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="form-input value-input"
+                    placeholder={METER_TYPE_PLACEHOLDERS[meterType]}
+                    value={value}
+                    onChange={e => setValue(e.target.value)}
+                  />
+                  <span className="field-hint">Введите текущее показание счётчика</span>
+                </div>
 
-            {submitError && <p className="form-error">{submitError}</p>}
+                {submitError && <p className="form-error">{submitError}</p>}
 
-            <button type="submit" className="btn-submit" disabled={loading}>
-              {loading ? 'Отправка…' : 'Отправить показания'}
-            </button>
-          </div>
-        </form>
-        
-        <div className="right-column">
-          <div className="form-card submitted-card">
-            <h2 className="form-card-title">Подано за {formatPeriod(currentPeriod())}</h2>
-            {submittedReadings.length === 0 ? (
-              <p className="no-readings">Пока ничего не подано</p>
-            ) : (
-              <ul className="readings-list">
-                {METER_TYPES.map(type => {
-                  const reading = submittedReadings.find(r => r.meter_type === type)
-                  return (
-                    <li key={type} className={`reading-item ${reading ? 'has-reading' : 'missing'}`}>
-                      <span className="reading-type">{METER_TYPE_LABELS[type as MeterType]}</span>
-                      <span className="reading-value">
-                        {reading ? `${reading.value.toFixed(2)} ${METER_TYPE_UNITS[type as MeterType]}` : '—'}
-                      </span>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </div>
-
-          {isAdmin() && (
-            <div className="form-card admin-panel-card">
-              <h2 className="form-card-title">Администрирование</h2>
-              <p className="admin-panel-desc">
-                Сводные таблицы по показаниям жильцов.
-                Перейдите для просмотра или скачивания таблицы.
-              </p>
-              <div className="admin-panel-buttons">
-                <button
-                  className="btn-admin-action"
-                  onClick={() => navigate(`/meters/admin?period=${currentPeriod()}`)}
-                >
-                  Посмотреть таблицу
+                <button type="submit" className="btn-submit" disabled={loading}>
+                  {loading ? 'Отправка…' : 'Отправить показания'}
                 </button>
               </div>
+            </form>
+
+            <div className="right-column">
+              <div className="form-card submitted-card">
+                <h2 className="form-card-title">Подано за {formatPeriod(currentPeriod())}</h2>
+                {submittedReadings.length === 0 ? (
+                  <p className="no-readings">Пока ничего не подано</p>
+                ) : (
+                  <ul className="readings-list">
+                    {METER_TYPES.map(type => {
+                      const reading = submittedReadings.find(r => r.meter_type === type)
+                      return (
+                        <li key={type} className={`reading-item ${reading ? 'has-reading' : 'missing'}`}>
+                          <span className="reading-type">{METER_TYPE_LABELS[type as MeterType]}</span>
+                          <span className="reading-value">
+                            {reading ? `${reading.value.toFixed(2)} ${METER_TYPE_UNITS[type as MeterType]}` : '—'}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              {isAdmin() && (
+                <div className="form-card admin-panel-card">
+                  <h2 className="form-card-title">Администрирование</h2>
+                  <p className="admin-panel-desc">
+                    Сводные таблицы по показаниям жильцов.
+                    Перейдите для просмотра или скачивания таблицы.
+                  </p>
+                  <div className="admin-panel-buttons">
+                    <button
+                      className="btn-admin-action"
+                      onClick={() => navigate(`/meters/admin?period=${currentPeriod()}`)}
+                    >
+                      Посмотреть таблицу
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <div className="meters-form">
+            {/* Список зарегистрированных счётчиков */}
+            {myWaterMeters.length === 0 ? (
+              <div className="form-card">
+                <h2 className="form-card-title">Мои счётчики воды</h2>
+                <p className="no-readings">Нет зарегистрированных счётчиков воды</p>
+              </div>
+            ) : (
+              <div className="form-card">
+                <h2 className="form-card-title">Мои счётчики воды</h2>
+                <ul className="readings-list">
+                  {myWaterMeters.map(m => {
+                    const next = new Date(m.next_verification_at).toLocaleDateString('ru-RU')
+                    const daysLeft = Math.ceil(
+                      (new Date(m.next_verification_at).getTime() - Date.now()) / 86400000,
+                    )
+                    const isOverdue = daysLeft < 0
+                    return (
+                      <li key={m.id} className={`reading-item ${isOverdue ? 'missing' : 'has-reading'}`}>
+                        <span className="reading-type">
+                          {WATER_METER_TYPE_LABELS[m.meter_type as WaterMeterType] ?? m.meter_type}
+                          <br />
+                          <span style={{ fontSize: 12, color: '#888' }}>{m.serial_number}</span>
+                        </span>
+                        <span className="reading-value">
+                          <span style={{ display: 'flex', flexDirection: 'column' }}>
+                            {next}
+                            {isOverdue && <br />}
+                            {isOverdue && (
+                              <span style={{ color: '#c0392b', fontSize: 12, textAlign: 'center'  }}>Просрочена</span>
+                            )}
+                            {!isOverdue && daysLeft <= 60 && (
+                              <span style={{ color: '#e67e22', fontSize: 12, textAlign: 'center' }}>{daysLeft} дн.</span>
+                            )}
+                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                            <button
+                              type="button"
+                              className="btn-link"
+                              onClick={() => { setSelectedMeter(m); setCardMode('verify'); setReplaceConfirm(false); setSubmitError('') }}
+                            >
+                              Поверка
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-link btn-link-danger"
+                              style={{ }}
+                              onClick={() => { setSelectedMeter(m); setCardMode('replace'); setReplaceConfirm(false); setSubmitError('') }}
+                            >
+                              Замена
+                            </button>
+                          </div>
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {/* Поверка выбранного счётчика */}
+            {cardMode === 'verify' && selectedMeter && (
+              <div className="form-card">
+                <h2 className="form-card-title">
+                  Поверка: {WATER_METER_TYPE_LABELS[selectedMeter.meter_type as WaterMeterType] ?? selectedMeter.meter_type} — {selectedMeter.serial_number}
+                </h2>
+
+                <div className="form-group">
+                  <label className="form-label">Дата последней поверки</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={verifyDate}
+                    max={formatDateInput(new Date())}
+                    onChange={e => setVerifyDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Дата следующей поверки</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={nextVerifyDate}
+                    onChange={e => setNextVerifyDate(e.target.value)}
+                  />
+                </div>
+
+                {submitError && <p className="form-error">{submitError}</p>}
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="btn-submit"
+                    disabled={loading}
+                    onClick={handleVerifySubmit}
+                  >
+                    {loading ? 'Отправка…' : 'Сохранить'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-cancel"
+                    onClick={() => { setCardMode(null); setSelectedMeter(null) }}
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Замена выбранного счётчика */}
+            {cardMode === 'replace' && selectedMeter && (
+              <div className="form-card">
+                <h2 className="form-card-title">
+                  Замена: {WATER_METER_TYPE_LABELS[selectedMeter.meter_type as WaterMeterType] ?? selectedMeter.meter_type} — {selectedMeter.serial_number}
+                </h2>
+                <p className="field-hint" style={{ marginBottom: 16 }}>
+                  Старый счётчик будет деактивирован. После деактивации зарегистрируйте новый счётчик.
+                </p>
+
+                {replaceConfirm ? (
+                  <>
+                    <p className="form-error" style={{ marginBottom: 16 }}>
+                      Для подтверждения нажмите «Удалить» повторно.
+                    </p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="btn-submit btn-danger"
+                        disabled={loading}
+                        onClick={handleReplaceConfirm}
+                      >
+                        {loading ? 'Удаление…' : 'Удалить'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-cancel"
+                        onClick={() => { setCardMode(null); setSelectedMeter(null); setReplaceConfirm(false) }}
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      className="btn-submit btn-danger"
+                      onClick={() => setReplaceConfirm(true)}
+                    >
+                      Удалить и заменить
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-cancel"
+                      onClick={() => { setCardMode(null); setSelectedMeter(null) }}
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Регистрация нового счётчика */}
+            <div className="form-card">
+              <h2 className="form-card-title">Регистрация счётчика воды</h2>
+
+              <div className="form-group">
+                <label className="form-label">Тип счётчика</label>
+                <div className="meter-type-grid">
+                  {(['cold', 'hot'] as WaterMeterType[]).map(type => (
+                    <button
+                      key={type}
+                      type="button"
+                      className={`meter-type-btn ${waterMeterType === type ? 'active' : ''}`}
+                      onClick={() => setWaterMeterType(type)}
+                    >
+                      {WATER_METER_TYPE_LABELS[type]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Заводской номер</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="например: AB-123456"
+                  value={serialNumber}
+                  onChange={e => setSerialNumber(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Дата установки</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={installedAt}
+                  max={formatDateInput(new Date())}
+                  onChange={e => setInstalledAt(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Дата следующей поверки</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={nextVerificationAt}
+                  min={installedAt}
+                  onChange={e => setNextVerificationAt(e.target.value)}
+                />
+              </div>
+
+              {submitError && <p className="form-error">{submitError}</p>}
+
+              <button
+                type="button"
+                className="btn-submit"
+                disabled={loading}
+                onClick={handleWaterMeterSubmit}
+              >
+                {loading ? 'Отправка…' : 'Зарегистрировать'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {toast && (

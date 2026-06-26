@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 
 from pydantic import BaseModel, field_validator
@@ -53,4 +53,42 @@ class ReadingsListResponse(BaseModel):
 
 class ReadingsAllResponse(BaseModel):
     readings: list[ReadingResponse]
+    total: int
+
+class VerificationType(str, Enum):
+    cold_water = "cold_water"
+    hot_water = "hot_water"
+
+
+class VerificationCreate(BaseModel):
+    apartment: str
+    meter_type: VerificationType
+    verification_date: date
+
+    @field_validator("verification_date")
+    @classmethod
+    def validate_date(cls, v: date) -> date:
+        if v > date.today():
+            raise ValueError("verification_date cannot be in the future")
+        return v
+
+
+class VerificationResponse(BaseModel):
+    id: int
+    user_id: int
+    apartment: str
+    meter_type: str
+    verification_date: date
+    submitted_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class VerificationsListResponse(BaseModel):
+    verifications: list[VerificationResponse]
+    total: int
+
+
+class VerificationsAllResponse(BaseModel):
+    verifications: list[VerificationResponse]
     total: int

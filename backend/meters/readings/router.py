@@ -6,12 +6,18 @@ from sqlalchemy.orm import Session
 from auth.dependencies import TokenData, get_current_user, require_admin
 from core.database import get_db
 from models.reading import MeterReading
+from models.verification import MeterVerification
 from readings.schemas import (
     MeterType,
     ReadingCreate,
     ReadingResponse,
     ReadingsAllResponse,
     ReadingsListResponse,
+    VerificationCreate,
+    VerificationResponse,
+    VerificationType,
+    VerificationsListResponse,
+    VerificationsAllResponse,
 )
 from services.external_client import external_client
 
@@ -136,3 +142,64 @@ def get_summary(
         "incomplete": total - complete,
         "apartments": apartments,
     }
+
+VERIFICATION_TYPES = [t.value for t in VerificationType]
+
+
+@router.post("/verifications", response_model=VerificationResponse, status_code=201)
+def submit_verification(
+    data: VerificationCreate,
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(get_current_user),
+):
+    existing = db.query(MeterVerification).filter(
+        MeterVerification.user_id == current_user.user_id,
+        MeterVerification.apartment == data.apartment,
+        MeterVerification.meter_type == data.meter_type,
+    ).first()
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Verification already submitted for this apartment and meter type",
+        )
+
+    verification = MeterVerification(
+        user_id=current_user.user_id,
+        apartment=data.apartment,
+        meter_type=data.meter_type,
+        verification_date=data.verification_date,
+    )
+    db.add(verification)
+    db.commit()
+    db.refresh(verification)
+    return verification
+
+
+@router.get("/verifications/me", response_model=VerificationsListResponse)
+def get_my_verifications(
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(get_current_user),
+):
+    items = db.query(MeterVerification).filter(
+        MeterVerification.user_id == current_user.user_id,
+    ).order_by(MeterVerification.verification_date.desc()).all()
+    return {"verifications": items, "total": len(items)}
+
+
+@router.get("/verifications/all", response_model=VerificationsAllResponse)
+def get_all_verifications(
+    apartment: Optional[str] = None,
+    meter_type: Optional[str] = None,
+    db: Session = Depends(get_db),
+    _current_user: TokenData = Depends(require_admin),  # noqa: F841
+):
+    query = db.query(MeterVerification)
+    if apartment:
+        query = query.filter(MeterVerification.apartment.ilike(f"%{apartment}%"))
+    if meter_type:
+        query = query.filter(MeterVerification.meter_type == meter_type)
+    items = query.order_by(
+        MeterVerification.apartment.asc(),
+        MeterVerification.verification_date.desc(),
+    ).all()
+    return {"verifications": items, "total": len(items)}
