@@ -196,6 +196,21 @@ export const WATER_METER_TYPE_LABELS: Record<WaterMeterType, string> = {
   hot: 'Горячая вода',
 }
 
+export interface WaterMeterVerificationResponse {
+  id: number
+  apartment: string
+  meter_type: string
+  serial_number: string
+  last_verified_at: string | null
+  next_verification_at: string
+  is_active: boolean
+}
+
+export interface WaterMeterVerificationListResponse {
+  verifications: WaterMeterVerificationResponse[]
+  total: number
+}
+
 export const waterMetersApi = {
   register: (data: WaterMeterCreate) =>
     request<WaterMeterResponse>('POST', '/water-meters/', data),
@@ -208,4 +223,17 @@ export const waterMetersApi = {
 
   deactivate: (meterId: number) =>
     request<{ message: string; id: number }>('DELETE', `/water-meters/${meterId}`),
+
+  listAllVerifications: (params?: { apartment?: string; meter_type?: VerificationMeterType }) => {
+    const qs = new URLSearchParams()
+    if (params?.apartment) qs.set('apartment', params.apartment)
+    if (params?.meter_type) {
+      qs.set('meter_type', params.meter_type.replace('_water', ''))
+    }
+    const query = qs.toString()
+    return request<WaterMeterVerificationListResponse>(
+      'GET',
+      `/water-meters/verifications/all${query ? `?${query}` : ''}`,
+    )
+  },
 }

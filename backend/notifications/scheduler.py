@@ -31,7 +31,7 @@ def check_meter_verifications():
         resp = httpx.get(
             f"{METERS_SERVICE_URL}/water-meters/expiring-soon",
             headers=SERVICE_HEADERS,
-            params={"days": 60},
+            params={"days": 7},
             timeout=10.0,
         )
         resp.raise_for_status()

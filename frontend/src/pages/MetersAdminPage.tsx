@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   metersApi,
+  waterMetersApi,
   type MeterType,
   type ReadingResponse,
-  type VerificationResponse,
-  type VerificationMeterType,
+  type WaterMeterVerificationResponse,
+  type WaterMeterType,
   METER_TYPE_LABELS,
   METER_TYPE_UNITS,
-  VERIFICATION_TYPE_LABELS,
+  WATER_METER_TYPE_LABELS,
 } from '../api/meters'
 import Toast from '../components/Toast'
 import './MetersAdminPage.css'
@@ -33,7 +34,7 @@ function formatDate(iso: string) {
 }
 
 function downloadCSV(
-  data: ReadingResponse[] | VerificationResponse[],
+  data: ReadingResponse[] | WaterMeterVerificationResponse[],
   tableType: TableType,
   period?: string,
 ) {
@@ -59,13 +60,13 @@ function downloadCSV(
     a.click()
     URL.revokeObjectURL(url)
   } else {
-    const verifications = data as VerificationResponse[]
-    const headers = ['Квартира', 'Тип счётчика', 'Дата поверки', 'Время подачи']
+    const verifications = data as WaterMeterVerificationResponse[]
+    const headers = ['Квартира', 'Тип счётчика', 'Последняя поверка', 'Следующая поверка']
     const rows = verifications.map(v => [
       v.apartment,
-      VERIFICATION_TYPE_LABELS[v.meter_type as VerificationMeterType] ?? v.meter_type,
-      new Date(v.verification_date).toLocaleDateString('ru-RU'),
-      formatDate(v.submitted_at),
+      WATER_METER_TYPE_LABELS[v.meter_type as keyof typeof WATER_METER_TYPE_LABELS] ?? v.meter_type,
+      v.last_verified_at ? new Date(v.last_verified_at).toLocaleDateString('ru-RU') : '—',
+      new Date(v.next_verification_at).toLocaleDateString('ru-RU'),
     ])
     const csv = [headers, ...rows]
       .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
@@ -94,7 +95,7 @@ export default function MetersAdminPage() {
 
   const [tableType, setTableType] = useState<TableType>('readings')
   const [allReadings, setAllReadings] = useState<ReadingResponse[]>([])
-  const [allVerifications, setAllVerifications] = useState<VerificationResponse[]>([])
+  const [allVerifications, setAllVerifications] = useState<WaterMeterVerificationResponse[]>([])
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
@@ -117,9 +118,9 @@ export default function MetersAdminPage() {
   }
 
   async function loadVerifications() {
-    const params: Parameters<typeof metersApi.listAllVerifications>[0] = {}
+    const params: Parameters<typeof waterMetersApi.listAllVerifications>[0] = {}
     if (meterTypeFilter) params.meter_type = meterTypeFilter
-    const res = await metersApi.listAllVerifications(params)
+    const res = await waterMetersApi.listAllVerifications(params)
     setAllVerifications(res.verifications)
   }
 
@@ -181,12 +182,11 @@ export default function MetersAdminPage() {
         switch (sortKey) {
           case 'apartment': av = a.apartment; bv = b.apartment; break
           case 'meter_type': av = a.meter_type; bv = b.meter_type; break
-          case 'verification_date': av = a.verification_date; bv = b.verification_date; break
-          case 'submitted_at': av = a.submitted_at; bv = b.submitted_at; break
+          case 'verification_date': av = a.last_verified_at ?? ''; bv = b.last_verified_at ?? ''; break
         }
         const cmp = av < bv ? -1 : av > bv ? 1 : 0
         return sortDir === 'asc' ? cmp : -cmp
-      })) as VerificationResponse[]
+      })) as WaterMeterVerificationResponse[]
     }
   }, [tableType, allReadings, allVerifications, apartmentFilter, sortKey, sortDir])
 
@@ -239,8 +239,6 @@ export default function MetersAdminPage() {
     setPeriod(p)
     setSearchParams({ period: p })
   }
-
-  const VERIFICATION_TYPES: VerificationMeterType[] = ['cold_water', 'hot_water']
 
   return (
     <div className="admin-page">
@@ -318,8 +316,8 @@ export default function MetersAdminPage() {
               ? METER_TYPES.map(t => (
                   <option key={t} value={t}>{METER_TYPE_LABELS[t]}</option>
                 ))
-              : VERIFICATION_TYPES.map(t => (
-                  <option key={t} value={t}>{VERIFICATION_TYPE_LABELS[t]}</option>
+              : (Object.keys(WATER_METER_TYPE_LABELS) as WaterMeterType[]).map(t => (
+                  <option key={t} value={t}>{WATER_METER_TYPE_LABELS[t as WaterMeterType]}</option>
                 ))}
           </select>
         </div>
@@ -424,24 +422,28 @@ export default function MetersAdminPage() {
                     Тип <SortIcon col="meter_type" />
                   </th>
                   <th onClick={() => toggleSort('verification_date')}>
-                    Дата поверки <SortIcon col="verification_date" />
+                    Последняя поверка <SortIcon col="verification_date" />
                   </th>
-                  <th onClick={() => toggleSort('submitted_at')}>
-                    Время подачи <SortIcon col="submitted_at" />
+                  <th>
+                    Следующая поверка
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {(filtered as VerificationResponse[]).map(v => (
+                {(filtered as WaterMeterVerificationResponse[]).map(v => (
                   <tr key={v.id}>
                     <td className="td-apartment">{v.apartment}</td>
                     <td>
-                      {VERIFICATION_TYPE_LABELS[v.meter_type as VerificationMeterType] ?? v.meter_type}
+                      {WATER_METER_TYPE_LABELS[v.meter_type as keyof typeof WATER_METER_TYPE_LABELS] ?? v.meter_type}
                     </td>
                     <td className="td-date">
-                      {new Date(v.verification_date).toLocaleDateString('ru-RU')}
+                      {v.last_verified_at
+                        ? new Date(v.last_verified_at).toLocaleDateString('ru-RU')
+                        : '—'}
                     </td>
-                    <td className="td-date">{formatDate(v.submitted_at)}</td>
+                    <td className="td-date">
+                      {new Date(v.next_verification_at).toLocaleDateString('ru-RU')}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -8,7 +8,12 @@ from auth.dependencies import TokenData, get_current_user, require_admin
 from core.config import SERVICE_KEY
 from core.database import get_db
 from models.water_meter import WaterMeter
-from water_meters.schemas import WaterMeterCreate, WaterMeterResponse, WaterMeterUpdate
+from water_meters.schemas import (
+    WaterMeterCreate,
+    WaterMeterResponse,
+    WaterMeterUpdate,
+    WaterMeterVerificationListResponse,
+)
 
 
 router = APIRouter(prefix="/water-meters", tags=["water-meters"])
@@ -156,3 +161,23 @@ def get_expiring_soon(
         }
         for m in meters
     ]
+
+
+@router.get("/verifications/all", response_model=WaterMeterVerificationListResponse)
+def get_all_verifications(
+    apartment: Optional[str] = None,
+    meter_type: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(require_admin),
+):
+    query = db.query(WaterMeter)
+    if apartment:
+        query = query.filter(WaterMeter.apartment.ilike(f"%{apartment}%"))
+    if meter_type:
+        query = query.filter(WaterMeter.meter_type == meter_type)
+    items = (
+        query.filter(WaterMeter.is_active == True)
+        .order_by(WaterMeter.apartment.asc(), WaterMeter.meter_type.asc())
+        .all()
+    )
+    return {"verifications": items, "total": len(items)}

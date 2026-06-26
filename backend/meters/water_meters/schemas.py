@@ -39,6 +39,23 @@ class WaterMeterUpdate(BaseModel):
         return v
 
 
+class WaterMeterVerificationResponse(BaseModel):
+    id: int
+    apartment: str
+    meter_type: str          # cold_water | hot_water
+    serial_number: str
+    last_verified_at: Optional[date]
+    next_verification_at: date
+    is_active: bool
+
+    model_config = {"from_attributes": True}
+
+
+class WaterMeterVerificationListResponse(BaseModel):
+    verifications: list[WaterMeterVerificationResponse]
+    total: int
+
+
 class WaterMeterResponse(BaseModel):
     id: int
     user_id: int
