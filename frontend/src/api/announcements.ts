@@ -25,6 +25,10 @@ async function request<T>(
   const data = await res.json().catch(() => ({ detail: null }))
 
   if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+    }
     throw new Error(
       typeof data?.detail === 'string' && data.detail
         ? data.detail

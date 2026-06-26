@@ -50,6 +50,10 @@ async function request<T>(
   const data = await res.json().catch(() => ({ detail: null }))
 
   if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+    }
     throw new Error(
       typeof data?.detail === 'string' && data.detail
         ? data.detail
@@ -78,6 +82,11 @@ export const profileApi = {
       headers: { Authorization: `Bearer ${token}` },
       body: formData,
     }).then(async res => {
+      if (res.status === 401) {
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+        throw new Error('Сессия истекла')
+      }
       const data = await res.json().catch(() => ({ detail: null }))
       if (!res.ok) {
         throw new Error(
