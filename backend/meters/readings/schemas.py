@@ -49,3 +49,8 @@ class ReadingResponse(BaseModel):
 class ReadingsListResponse(BaseModel):
     readings: list[ReadingResponse]
     total: int
+
+
+class ReadingsAllResponse(BaseModel):
+    readings: list[ReadingResponse]
+    total: int

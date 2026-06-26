@@ -58,6 +58,11 @@ export interface ReadingsListResponse {
   total: number
 }
 
+export interface ReadingsAllResponse {
+  readings: ReadingResponse[]
+  total: number
+}
+
 export const metersApi = {
   submit: (data: ReadingCreate) =>
     request<ReadingResponse>('POST', '/readings/', data),
@@ -70,6 +75,18 @@ export const metersApi = {
     return request<ReadingsListResponse>(
       'GET',
       `/readings/me${query ? `?${query}` : ''}`,
+    )
+  },
+
+  listAll: (params?: { period?: string; apartment?: string; meter_type?: string }) => {
+    const qs = new URLSearchParams()
+    if (params?.period) qs.set('period', params.period)
+    if (params?.apartment) qs.set('apartment', params.apartment)
+    if (params?.meter_type) qs.set('meter_type', params.meter_type)
+    const query = qs.toString()
+    return request<ReadingsAllResponse>(
+      'GET',
+      `/readings/all${query ? `?${query}` : ''}`,
     )
   },
 }

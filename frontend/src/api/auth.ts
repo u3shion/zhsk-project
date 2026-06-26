@@ -62,3 +62,14 @@ export const api = {
   login: (data: LoginData) =>
     request<AuthResponse>('POST', '/auth/login', data),
 }
+
+export function isAdmin(): boolean {
+  const token = localStorage.getItem('token')
+  if (!token) return false
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.role === 'admin'
+  } catch {
+    return false
+  }
+}

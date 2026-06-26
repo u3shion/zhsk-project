@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './MetersPage.css'
 import {
   metersApi,
@@ -8,6 +9,7 @@ import {
   METER_TYPE_PLACEHOLDERS,
 } from '../api/meters'
 import { profileApi } from '../api/profile'
+import { isAdmin } from '../api/auth'
 import Toast from '../components/Toast'
 
 const METER_TYPES: MeterType[] = ['electricity', 'cold_water', 'hot_water', 'heating', 'gas']
@@ -24,6 +26,7 @@ function currentPeriod() {
 }
 
 export default function MetersPage() {
+  const navigate = useNavigate()
   const [apartment, setApartment] = useState('')
   const [period, setPeriod] = useState(currentPeriod())
   const [meterType, setMeterType] = useState<MeterType>('cold_water')
@@ -150,25 +153,45 @@ export default function MetersPage() {
             </button>
           </div>
         </form>
+        
+        <div className="right-column">
+          <div className="form-card submitted-card">
+            <h2 className="form-card-title">Подано за {formatPeriod(currentPeriod())}</h2>
+            {submittedReadings.length === 0 ? (
+              <p className="no-readings">Пока ничего не подано</p>
+            ) : (
+              <ul className="readings-list">
+                {METER_TYPES.map(type => {
+                  const reading = submittedReadings.find(r => r.meter_type === type)
+                  return (
+                    <li key={type} className={`reading-item ${reading ? 'has-reading' : 'missing'}`}>
+                      <span className="reading-type">{METER_TYPE_LABELS[type as MeterType]}</span>
+                      <span className="reading-value">
+                        {reading ? `${reading.value.toFixed(2)} ${METER_TYPE_UNITS[type as MeterType]}` : '—'}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
 
-        <div className="form-card submitted-card">
-          <h2 className="form-card-title">Подано за {formatPeriod(currentPeriod())}</h2>
-          {submittedReadings.length === 0 ? (
-            <p className="no-readings">Пока ничего не подано</p>
-          ) : (
-            <ul className="readings-list">
-              {METER_TYPES.map(type => {
-                const reading = submittedReadings.find(r => r.meter_type === type)
-                return (
-                  <li key={type} className={`reading-item ${reading ? 'has-reading' : 'missing'}`}>
-                    <span className="reading-type">{METER_TYPE_LABELS[type as MeterType]}</span>
-                    <span className="reading-value">
-                      {reading ? `${reading.value.toFixed(2)} ${METER_TYPE_UNITS[type as MeterType]}` : '—'}
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
+          {isAdmin() && (
+            <div className="form-card admin-panel-card">
+              <h2 className="form-card-title">Администрирование</h2>
+              <p className="admin-panel-desc">
+                Сводные таблицы по показаниям жильцов.
+                Перейдите для просмотра или скачивания таблицы.
+              </p>
+              <div className="admin-panel-buttons">
+                <button
+                  className="btn-admin-action"
+                  onClick={() => navigate(`/meters/admin?period=${currentPeriod()}`)}
+                >
+                  Посмотреть таблицу
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>

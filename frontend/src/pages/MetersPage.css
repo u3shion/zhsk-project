@@ -152,6 +152,21 @@
   cursor: not-allowed;
 }
 
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+
+.right-column .submitted-card {
+  flex: 1;
+}
+
+.right-column .admin-panel-card {
+  flex: 1;
+}
+
 .submitted-card {
   position: sticky;
   top: 32px;
@@ -205,6 +220,45 @@
 .reading-item.missing .reading-value {
   color: #ccc;
   font-weight: 400;
+}
+
+.admin-panel-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e0e7ff;
+  background: #f0f4ff;
+}
+
+.admin-panel-desc {
+  font-size: 13px;
+  color: #555;
+  margin: 0 0 14px;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.admin-panel-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-admin-action {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #1a3a5c;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
+}
+
+.btn-admin-action:hover {
+  background: #2c5282;
 }
 
 .no-readings {

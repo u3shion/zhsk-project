@@ -6,7 +6,13 @@ from sqlalchemy.orm import Session
 from auth.dependencies import TokenData, get_current_user, require_admin
 from core.database import get_db
 from models.reading import MeterReading
-from readings.schemas import MeterType, ReadingCreate, ReadingResponse, ReadingsListResponse
+from readings.schemas import (
+    MeterType,
+    ReadingCreate,
+    ReadingResponse,
+    ReadingsAllResponse,
+    ReadingsListResponse,
+)
 from services.external_client import external_client
 
 
@@ -72,6 +78,29 @@ def get_my_readings(
     if meter_type:
         query = query.filter(MeterReading.meter_type == meter_type)
     items = query.order_by(MeterReading.period.desc(), MeterReading.submitted_at.desc()).all()
+    return {"readings": items, "total": len(items)}
+
+
+@router.get("/all", response_model=ReadingsAllResponse)
+def get_all_readings(
+    period: Optional[str] = None,
+    apartment: Optional[str] = None,
+    meter_type: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(require_admin),
+):
+    query = db.query(MeterReading)
+    if period:
+        query = query.filter(MeterReading.period == period)
+    if apartment:
+        query = query.filter(MeterReading.apartment.ilike(f"%{apartment}%"))
+    if meter_type:
+        query = query.filter(MeterReading.meter_type == meter_type)
+    items = query.order_by(
+        MeterReading.apartment.asc(),
+        MeterReading.period.desc(),
+        MeterReading.submitted_at.desc(),
+    ).all()
     return {"readings": items, "total": len(items)}
 
 
