@@ -3,7 +3,7 @@
 echo "Установка зависимостей для тестирования..."
 echo ""
 
-SERVICES=("users" "meters" "announcements")
+SERVICES=("users" "meters" "announcements" "chat" "notifications")
 
 for service in "${SERVICES[@]}"; do
     echo "Устанавливаем зависимости для $service..."

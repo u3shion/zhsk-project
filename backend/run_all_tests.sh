@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SERVICES=("users" "meters" "announcements")
+SERVICES=("users" "meters" "announcements" "chat" "notifications")
 FAILED_SERVICES=0
 PASSED_SERVICES=0
 TOTAL_TESTS_PASSED=0
