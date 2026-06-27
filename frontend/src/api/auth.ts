@@ -45,6 +45,15 @@ async function request<T>(
   const data = await res.json().catch(() => ({ detail: null }))
 
   if (!res.ok) {
+    // Обработка ошибок валидации от FastAPI
+    if (Array.isArray(data?.detail) && data.detail.length > 0) {
+      const firstError = data.detail[0]
+      if (firstError.msg) {
+        // Извлекаем текст ошибки после "Value error, "
+        const msg = firstError.msg.replace(/^Value error,\s*/i, '')
+        throw new Error(msg)
+      }
+    }
     throw new Error(
       typeof data?.detail === 'string' && data.detail
         ? data.detail

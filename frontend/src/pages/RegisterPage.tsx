@@ -35,8 +35,8 @@ export default function RegisterPage() {
       return
     }
 
-    if (form.password.length < 6) {
-      setError('Пароль должен содержать минимум 6 символов')
+    if (form.password.length < 8) {
+      setError('Пароль должен содержать не меньше 8 символов')
       return
     }
 
@@ -104,7 +104,7 @@ export default function RegisterPage() {
               name="password"
               type="password"
               autoComplete="new-password"
-              placeholder="Минимум 6 символов"
+              placeholder="Минимум 8 символов"
               value={form.password}
               onChange={handleChange}
               disabled={loading}

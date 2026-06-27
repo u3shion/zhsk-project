@@ -105,7 +105,7 @@ export default function RoomPage() {
         })
         setMessages(msgsResolved)
 
-        const wsUrl = `ws://localhost:3000/ws/rooms/${room_id}?token=${encodeURIComponent(token)}`
+        const wsUrl = `ws://localhost:8080/ws/rooms/${room_id}?token=${encodeURIComponent(token)}`
         const ws = new WebSocket(wsUrl)
         wsRef.current = ws
 
@@ -277,7 +277,7 @@ export default function RoomPage() {
 
       {/* Input */}
       <div className="room-input-area">
-        {!(myProfile !== null && !myProfile.full_name) && (
+        {(myProfile !== null && myProfile.full_name && myProfile.apartment) && (
           <textarea
             ref={inputRef}
             className="room-input"
@@ -288,12 +288,12 @@ export default function RoomPage() {
             rows={1}
           />
         )}
-        {(myProfile !== null && !myProfile.full_name) && (
+        {(myProfile !== null && (!myProfile.full_name || !myProfile.apartment)) && (
           <div className="room-input room-input-disabled">
             Заполните фамилию, имя и номер квартиры в профиле, чтобы отправлять сообщения.
           </div>
         )}
-        {!(myProfile !== null && !myProfile.full_name) && (
+        {(myProfile !== null && myProfile.full_name && myProfile.apartment) && (
           <button
             className="room-send-btn"
             onClick={sendMessage}

@@ -131,7 +131,7 @@ export default function MetersPage() {
   async function handleWaterMeterSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSubmitError('')
-    if (!apartment.trim()) { setSubmitError('Укажите номер квартиры'); return }
+    if (!apartment.trim()) { setSubmitError('Укажите номер квартиры в профиле'); return }
     if (!serialNumber.trim()) { setSubmitError('Укажите заводской номер'); return }
     if (!installedAt) { setSubmitError('Укажите дату установки'); return }
     if (!nextVerificationAt) { setSubmitError('Укажите дату следующей поверки'); return }
@@ -168,7 +168,7 @@ export default function MetersPage() {
     e.preventDefault()
     setSubmitError('')
 
-    if (!apartment.trim()) { setSubmitError('Укажите номер квартиры'); return }
+    if (!apartment.trim()) { setSubmitError('Укажите номер квартиры в профиле'); return }
     if (!period.match(/^\d{4}-(0[1-9]|1[0-2])$/)) { setSubmitError('Период должен быть в формате ГГГГ-ММ'); return }
 
     const numValue = parseFloat(value.replace(',', '.'))
