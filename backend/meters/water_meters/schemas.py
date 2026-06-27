@@ -15,6 +15,7 @@ class WaterMeterCreate(BaseModel):
     meter_type: WaterMeterType
     serial_number: str
     installed_at: date
+    last_verified_at: Optional[date] = None
     next_verification_at: date
 
     @field_validator("next_verification_at")

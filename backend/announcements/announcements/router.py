@@ -63,7 +63,13 @@ async def create_announcement(
 
     photo_urls: list[str] = []
     for photo in photos:
-        photo_urls.append(await _upload_single_photo(photo))
+        try:
+            photo_urls.append(await _upload_single_photo(photo))
+        except HTTPException:
+            raise
+        except Exception as e:
+            import logging
+            logging.warning(f"Failed to upload photo: {e}")
 
     announcement = Announcement(
         author_id=current_user.user_id,

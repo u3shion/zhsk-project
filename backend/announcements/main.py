@@ -5,9 +5,13 @@ from core.database import Base, engine
 from announcements.router import router as announcements_router
 
 
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title="Announcements Service")
+
+
+@app.on_event("startup")
+def on_startup():
+    Base.metadata.create_all(bind=engine)
+
 
 app.include_router(announcements_router)
 

@@ -7,9 +7,14 @@ from models import *
 from core.database import Base, engine
 
 
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title="Users Service")
+
+
+@app.on_event("startup")
+def on_startup():
+    Base.metadata.create_all(bind=engine)
+
+
 app.include_router(auth_router)
 app.include_router(users_router)
 
