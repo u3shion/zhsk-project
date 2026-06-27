@@ -1,43 +1,40 @@
-# =========================
-# Python
-# =========================
+#Python
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 *.pyc
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
 
-# =========================
+# Test output
+*.log
+test-results/
+
 # Virtual environment
-# =========================
 venv/
 .env/
 .venv/
 
-# =========================
 # IDE
-# =========================
 .idea/
 .vscode/
 *.swp
+*.swo
+*~
 
-# =========================
 # Logs
-# =========================
 *.log
 
-# =========================
 # Database / local files
-# =========================
 *.sqlite3
 
-# =========================
 # Environment variables
-# =========================
 .env
 
-# =========================
 # OS files
-# =========================
 .DS_Store
 Thumbs.db
