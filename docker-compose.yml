@@ -2,6 +2,9 @@ include:
   - path: backend/docker-compose.yml
     env_file:
       - .env
+  - path: frontend/docker-compose.yml
+    env_file:
+      - .env
 
 services:
   gateway:
@@ -17,3 +20,4 @@ services:
       - announcements
       - notifications
       - chat
+      - frontend
