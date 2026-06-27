@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { notificationsApi, type ResidentResponse } from '../api/notifications'
 import { chatApi } from '../api/chat'
 

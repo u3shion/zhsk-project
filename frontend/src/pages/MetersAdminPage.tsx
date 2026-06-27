@@ -119,7 +119,9 @@ export default function MetersAdminPage() {
 
   async function loadVerifications() {
     const params: Parameters<typeof waterMetersApi.listAllVerifications>[0] = {}
-    if (meterTypeFilter) params.meter_type = meterTypeFilter
+    if (meterTypeFilter && (meterTypeFilter === 'cold_water' || meterTypeFilter === 'hot_water')) {
+      params.meter_type = meterTypeFilter
+    }
     const res = await waterMetersApi.listAllVerifications(params)
     setAllVerifications(res.verifications)
   }
