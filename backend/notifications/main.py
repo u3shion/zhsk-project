@@ -9,13 +9,12 @@ from notifications.router import router as notifications_router
 from scheduler import check_meter_verifications
 
 
-Base.metadata.create_all(bind=engine)
-
 scheduler = BackgroundScheduler(timezone="Europe/Moscow")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
     scheduler.add_job(check_meter_verifications, "cron", hour=8, minute=0, id="meter_check")
     scheduler.start()
     yield

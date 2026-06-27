@@ -1,7 +1,11 @@
 from fastapi import Depends, HTTPException, status, Query
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError
 
 from auth.security import decode_token
+
+
+security = HTTPBearer()
 
 
 class TokenData:
@@ -27,8 +31,11 @@ def _parse_token(token: str) -> TokenData:
         raise credentials_exception
 
 
-def get_current_user(token: str = Query(..., alias="token")) -> TokenData:
-    """For WebSocket connections — token passed as query param."""
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> TokenData:
+    return _parse_token(credentials.credentials)
+
+
+def get_current_user_ws(token: str = Query(..., alias="token")) -> TokenData:
     return _parse_token(token)
 
 
