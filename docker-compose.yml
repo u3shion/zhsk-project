@@ -15,9 +15,15 @@ services:
     volumes:
       - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - users
-      - meters
-      - announcements
-      - notifications
-      - chat
-      - frontend
+      users:
+        condition: service_healthy
+      meters:
+        condition: service_healthy
+      announcements:
+        condition: service_healthy
+      notifications:
+        condition: service_healthy
+      chat:
+        condition: service_healthy
+      frontend:
+        condition: service_started
