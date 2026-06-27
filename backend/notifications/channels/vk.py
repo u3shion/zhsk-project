@@ -35,10 +35,6 @@ VK_ERROR_MESSAGES = {
 
 class VKChannel(BaseChannel):
     def send(self, recipient: str, subject: str, message: str) -> SendResult:
-        """
-        recipient — числовой VK user_id (строка), например "123456789".
-        subject включается в текст сообщения первой строкой.
-        """
         if not VK_GROUP_TOKEN:
             return SendResult(success=False, error="VK_GROUP_TOKEN is not configured")
 

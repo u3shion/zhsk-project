@@ -9,11 +9,10 @@ class Announcement(Base):
     id = Column(Integer, primary_key=True, index=True)
     author_id = Column(Integer, nullable=False, index=True)
     author_role = Column(String, nullable=False)
-    type = Column(String, nullable=False, index=True)   # news | ad
-    subtype = Column(String, nullable=True)             # service | noise  (только для ad)
+    type = Column(String, nullable=False, index=True)
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
-    photo_urls = Column(Text, nullable=True)            # JSON array of URLs в MinIO
+    photo_urls = Column(Text, nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

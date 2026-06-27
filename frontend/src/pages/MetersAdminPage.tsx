@@ -99,14 +99,11 @@ export default function MetersAdminPage() {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
-  // Filters (server-side)
   const [period, setPeriod] = useState(initialPeriod)
   const [meterTypeFilter, setMeterTypeFilter] = useState<string>('')
 
-  // Filter (client-side)
   const [apartmentFilter, setApartmentFilter] = useState('')
 
-  // Sort
   const [sortKey, setSortKey] = useState<SortKey>('apartment')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
 
@@ -143,7 +140,6 @@ export default function MetersAdminPage() {
 
   useEffect(() => {
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period, meterTypeFilter, tableType])
 
   function showToast(message: string, type: 'success' | 'error') {
@@ -206,7 +202,6 @@ export default function MetersAdminPage() {
     return <span className="sort-icon active">{sortDir === 'asc' ? '↑' : '↓'}</span>
   }
 
-  // Per-type grouping per apartment+period
   const submittedTypes = useMemo(() => {
     const map: Record<string, Set<string>> = {}
     for (const r of allReadings) {
@@ -219,7 +214,6 @@ export default function MetersAdminPage() {
 
   const METER_TYPES: MeterType[] = ['electricity', 'cold_water', 'hot_water', 'heating', 'gas']
 
-  // Unique apartments with their submission status
   const apartments = useMemo(() => {
     const map: Record<string, { submitted: string[]; missing: string[] }> = {}
     for (const r of allReadings) {

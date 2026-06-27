@@ -13,7 +13,7 @@ class User(Base):
     full_name = Column(String, nullable=True)
     apartment = Column(String, nullable=True)
 
-    notification_channel = Column(String, nullable=False, default="email")  # email | sms | vk
+    notification_channel = Column(String, nullable=False, default="email")
     phone = Column(String, nullable=True)
     vk_id = Column(String, nullable=True)
     avatar_url = Column(String, nullable=True)

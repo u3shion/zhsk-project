@@ -136,9 +136,7 @@ export default function RoomPage() {
                 prev.map(m => m.id === data.message_id ? { ...m, is_deleted: true } : m)
               )
             }
-          } catch {
-            // ignore parse errors
-          }
+          } catch {}
         }
 
         ws.onerror = () => {

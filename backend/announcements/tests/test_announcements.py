@@ -1,4 +1,3 @@
-import pytest
 from io import BytesIO
 
 
@@ -9,7 +8,6 @@ class TestAnnouncementsCreate:
         assert response.status_code == 201
         data = response.json()
         assert data["type"] == "ad"
-        assert data["subtype"] == "service"
         assert data["title"] == sample_announcement["title"]
         assert data["author_role"] == "resident"
         assert data["is_active"] is True
@@ -24,18 +22,6 @@ class TestAnnouncementsCreate:
     def test_create_news_by_resident_forbidden(self, client, auth_headers, sample_news):
         response = client.post("/announcements/", headers=auth_headers, data=sample_news)
         assert response.status_code == 403
-
-    @pytest.mark.parametrize("subtype", ["service", "noise"])
-    def test_create_ad_both_subtypes(self, client, auth_headers, subtype):
-        announcement = {
-            "type": "ad",
-            "subtype": subtype,
-            "title": f"Тест {subtype}",
-            "content": "Контент"
-        }
-        response = client.post("/announcements/", headers=auth_headers, data=announcement)
-        assert response.status_code == 201
-        assert response.json()["subtype"] == subtype
 
     def test_create_announcement_with_photo(self, client, auth_headers, sample_announcement):
         photo = BytesIO(b"fake image data")
@@ -111,34 +97,10 @@ class TestAnnouncementsGet:
         assert data["total"] == 1
         assert data["items"][0]["type"] == "ad"
 
-    def test_get_announcements_filter_by_subtype(self, client, auth_headers):
-        service_ad = {
-            "type": "ad",
-            "subtype": "service",
-            "title": "Услуга",
-            "content": "Контент"
-        }
-        noise_ad = {
-            "type": "ad",
-            "subtype": "noise",
-            "title": "Шум",
-            "content": "Контент"
-        }
-
-        client.post("/announcements/", headers=auth_headers, data=service_ad)
-        client.post("/announcements/", headers=auth_headers, data=noise_ad)
-
-        response = client.get("/announcements/?subtype=service", headers=auth_headers)
-        assert response.status_code == 200
-        data = response.json()
-        assert data["total"] == 1
-        assert data["items"][0]["subtype"] == "service"
-
     def test_get_announcements_pagination(self, client, auth_headers):
         for i in range(5):
             announcement = {
                 "type": "ad",
-                "subtype": "service",
                 "title": f"Объявление {i}",
                 "content": "Контент"
             }

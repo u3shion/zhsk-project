@@ -55,8 +55,6 @@
   background: #2c5282;
 }
 
-/* Feed */
-
 .news-loading,
 .news-empty {
   text-align: center;
@@ -75,8 +73,6 @@
   flex-direction: column;
   gap: 20px;
 }
-
-/* Card */
 
 .news-card {
   background: #fff;
@@ -193,8 +189,6 @@
   margin: 0;
   white-space: pre-wrap;
 }
-
-/* Modal */
 
 .modal-overlay {
   position: fixed;
@@ -440,8 +434,6 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
-
-/* Notify modal */
 
 .modal--notify {
   max-width: 560px;

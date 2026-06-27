@@ -5,7 +5,7 @@ Mock-сервис, имитирующий внешнюю службу сбора
 import logging
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Literal
 
@@ -16,13 +16,12 @@ app = FastAPI(title="Mock External Meter Service")
 
 
 class MeterReadingSubmission(BaseModel):
-    """Формат данных, которые принимает внешняя служба."""
     provider_id: str
     provider_name: str
     meter_type: Literal["electricity", "cold_water", "hot_water", "heating", "gas"]
     meter_number: str
     value: float
-    period: str  # YYYY-MM
+    period: str
     submitted_at: str
     apartment: str
     resident_id: str
@@ -35,13 +34,11 @@ class ExternalSubmissionResponse(BaseModel):
     message: str
 
 
-# In-memory хранилище принятых показаний
 _submissions: list[dict] = []
 
 
 @app.post("/submit", response_model=ExternalSubmissionResponse)
 async def submit_reading(data: MeterReadingSubmission):
-    """Принять показание и сохранить в моковом хранилище."""
     logger.info(
         "[MOCK EXTERNAL] Received reading: provider=%s meter=%s value=%.2f period=%s apartment=%s",
         data.provider_id,
@@ -72,7 +69,6 @@ async def submit_reading(data: MeterReadingSubmission):
 
 @app.get("/submissions")
 async def list_submissions():
-    """Список всех принятых показаний (для отладки/проверки)."""
     return {"total": len(_submissions), "submissions": _submissions}
 
 

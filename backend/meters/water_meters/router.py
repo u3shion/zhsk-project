@@ -136,7 +136,6 @@ def get_expiring_soon(
     db: Session = Depends(get_db),
     _: None = Depends(_check_service_key),
 ):
-    """Внутренний эндпоинт для сервиса уведомлений."""
     today = date.today()
     deadline = today + timedelta(days=days)
 

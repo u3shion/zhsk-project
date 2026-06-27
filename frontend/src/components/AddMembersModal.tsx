@@ -57,9 +57,7 @@ export default function AddMembersModal({ roomId, onClose, onSuccess }: AddMembe
       try {
         await chatApi.inviteToRoom(roomId, userId)
         added++
-      } catch {
-        // Skip failed invites
-      }
+      } catch {}
     }
     setSending(false)
     onSuccess(added)

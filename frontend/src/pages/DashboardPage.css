@@ -27,7 +27,6 @@
   margin: 0;
 }
 
-/* Card base */
 .dashboard-card {
   background: #fff;
   border-radius: 12px;
@@ -43,7 +42,6 @@
   font-size: 14px;
 }
 
-/* News */
 .news-list {
   display: flex;
   flex-direction: column;
@@ -103,7 +101,6 @@
   overflow: hidden;
 }
 
-/* Readings / water meters shared */
 .readings-list {
   list-style: none;
   padding: 0;

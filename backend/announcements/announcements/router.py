@@ -48,7 +48,6 @@ async def _upload_single_photo(photo: UploadFile) -> str:
 @router.post("/", response_model=AnnouncementResponse, status_code=201)
 async def create_announcement(
     type: str = Form(...),
-    subtype: Optional[str] = Form(None),
     title: str = Form(...),
     content: str = Form(...),
     photos: list[UploadFile] = File(default=[]),
@@ -75,7 +74,6 @@ async def create_announcement(
         author_id=current_user.user_id,
         author_role=current_user.role,
         type=type,
-        subtype=subtype,
         title=title,
         content=content,
         photo_urls=json.dumps(photo_urls) if photo_urls else None,
@@ -89,7 +87,6 @@ async def create_announcement(
 @router.get("/", response_model=AnnouncementsListResponse)
 def list_announcements(
     type: Optional[str] = None,
-    subtype: Optional[str] = None,
     page: int = 1,
     page_size: int = 20,
     db: Session = Depends(get_db),
@@ -99,8 +96,6 @@ def list_announcements(
 
     if type:
         query = query.filter(Announcement.type == type)
-    if subtype:
-        query = query.filter(Announcement.subtype == subtype)
 
     total = query.count()
     items = (
@@ -133,7 +128,6 @@ async def update_announcement(
     announcement_id: int,
     title: Optional[str] = Form(default=None),
     content: Optional[str] = Form(default=None),
-    subtype: Optional[str] = Form(default=None),
     photo: Optional[UploadFile] = File(default=None),
     db: Session = Depends(get_db),
     current_user: TokenData = Depends(get_current_user),
@@ -154,8 +148,6 @@ async def update_announcement(
         announcement.title = title
     if content is not None:
         announcement.content = content
-    if subtype is not None:
-        announcement.subtype = subtype
 
     if photo is not None:
         content_bytes = await photo.read()

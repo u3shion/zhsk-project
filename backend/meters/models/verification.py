@@ -9,7 +9,7 @@ class MeterVerification(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, nullable=False, index=True)
     apartment = Column(String, nullable=False, index=True)
-    meter_type = Column(String, nullable=False)    # cold_water | hot_water
+    meter_type = Column(String, nullable=False)
     verification_date = Column(Date, nullable=False)
     submitted_at = Column(DateTime(timezone=True), server_default=func.now())
 

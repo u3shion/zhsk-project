@@ -44,7 +44,6 @@ export interface AnnouncementResponse {
   author_id: number
   author_role: string
   type: string
-  subtype: string | null
   title: string
   content: string
   photo_urls: string[]
@@ -75,7 +74,6 @@ export const announcementsApi = {
 
   create: async (data: {
     type: string
-    subtype?: string
     title: string
     content: string
     photos?: File[]
@@ -84,7 +82,6 @@ export const announcementsApi = {
     form.append('type', data.type)
     form.append('title', data.title)
     form.append('content', data.content)
-    if (data.subtype) form.append('subtype', data.subtype)
     if (data.photos) {
       for (const photo of data.photos) {
         form.append('photos', photo)

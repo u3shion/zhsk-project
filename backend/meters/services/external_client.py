@@ -96,6 +96,4 @@ class ExternalServiceClient:
             )
             raise
 
-
-# Singleton-экземпляр для reuse между запросами
 external_client = ExternalServiceClient()

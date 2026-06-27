@@ -8,12 +8,12 @@ class NotificationLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, nullable=False, index=True)
-    channel = Column(String, nullable=False)        # email | sms | vk
-    recipient = Column(String, nullable=False)      # фактический адрес/телефон/id
+    channel = Column(String, nullable=False)
+    recipient = Column(String, nullable=False)
     subject = Column(String, nullable=False)
     message = Column(String, nullable=False)
-    status = Column(String, nullable=False)         # sent | failed
+    status = Column(String, nullable=False)
     error = Column(String, nullable=True)
-    trigger = Column(String, nullable=False)        # manual | scheduler
+    trigger = Column(String, nullable=False)
     sent_by_admin_id = Column(Integer, nullable=True)
     sent_at = Column(DateTime(timezone=True), server_default=func.now())

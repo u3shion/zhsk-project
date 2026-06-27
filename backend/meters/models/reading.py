@@ -9,8 +9,8 @@ class MeterReading(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, nullable=False, index=True)
     apartment = Column(String, nullable=False, index=True)
-    period = Column(String, nullable=False)        # "YYYY-MM"
-    meter_type = Column(String, nullable=False)    # electricity | cold_water | hot_water | heating | gas
+    period = Column(String, nullable=False)
+    meter_type = Column(String, nullable=False)
     value = Column(Float, nullable=False)
     submitted_at = Column(DateTime(timezone=True), server_default=func.now())
 

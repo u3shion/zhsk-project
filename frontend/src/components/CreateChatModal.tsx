@@ -61,9 +61,7 @@ export default function CreateChatModal({ onClose, onSuccess }: CreateChatModalP
       for (const userId of selected) {
         try {
           await chatApi.inviteToRoom(room.id, userId)
-        } catch {
-          // Skip failed invites
-        }
+        } catch {}
       }
 
       onSuccess(room.id)

@@ -5,7 +5,6 @@ import asyncio
 
 class ConnectionManager:
     def __init__(self):
-        # room_id -> set of (user_id, websocket)
         self._rooms: dict[int, dict[int, list[WebSocket]]] = defaultdict(lambda: defaultdict(list))
         self._lock = asyncio.Lock()
 

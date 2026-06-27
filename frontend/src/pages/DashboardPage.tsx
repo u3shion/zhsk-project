@@ -51,7 +51,7 @@ export default function DashboardPage() {
       const res = await announcementsApi.list({ type: 'news', page_size: 5 })
       setNews(res.items)
     } catch {
-      // silent fail for dashboard news
+      // silent fail
     } finally {
       setNewsLoading(false)
     }

@@ -9,7 +9,7 @@ class WaterMeter(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, nullable=False, index=True)
     apartment = Column(String, nullable=False, index=True)
-    meter_type = Column(String, nullable=False)    # cold | hot
+    meter_type = Column(String, nullable=False)
     serial_number = Column(String, nullable=False)
     installed_at = Column(Date, nullable=False)
     last_verified_at = Column(Date, nullable=True)

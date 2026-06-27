@@ -43,7 +43,7 @@ class WaterMeterUpdate(BaseModel):
 class WaterMeterVerificationResponse(BaseModel):
     id: int
     apartment: str
-    meter_type: str          # cold_water | hot_water
+    meter_type: str
     serial_number: str
     last_verified_at: Optional[date]
     next_verification_at: date

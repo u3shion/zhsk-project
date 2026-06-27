@@ -89,7 +89,6 @@ def admin_headers(admin_token):
 def sample_announcement():
     return {
         "type": "ad",
-        "subtype": "service",
         "title": "Ремонт квартир",
         "content": "Предлагаю услуги по ремонту"
     }

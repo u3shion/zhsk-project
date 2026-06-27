@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, field_validator
 
@@ -9,7 +8,6 @@ class AnnouncementResponse(BaseModel):
     author_id: int
     author_role: str
     type: str
-    subtype: Optional[str]
     title: str
     content: str
     photo_urls: list[str]

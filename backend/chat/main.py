@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.database import Base, engine
-import models.chat  # noqa: F401 — registers ORM models
+import models.chat  # noqa: F401
 from rooms.router import router as rooms_router
 from ws.router import router as ws_router
 

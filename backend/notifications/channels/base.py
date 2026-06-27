@@ -11,8 +11,4 @@ class SendResult:
 class BaseChannel(ABC):
     @abstractmethod
     def send(self, recipient: str, subject: str, message: str) -> SendResult:
-        """
-        recipient — email, телефон или vk_id в зависимости от канала.
-        Возвращает SendResult с флагом success и текстом ошибки при неудаче.
-        """
         ...

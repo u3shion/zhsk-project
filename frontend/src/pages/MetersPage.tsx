@@ -46,7 +46,6 @@ export default function MetersPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [submittedReadings, setSubmittedReadings] = useState<{ meter_type: string; value: number }[]>([])
 
-  // поверка / замена счётчиков воды
   const [section, setSection] = useState<Section>('readings')
   const [selectedMeter, setSelectedMeter] = useState<WaterMeterResponse | null>(null)
   const [cardMode, setCardMode] = useState<'verify' | 'replace' | null>(null)
@@ -54,7 +53,6 @@ export default function MetersPage() {
   const [nextVerifyDate, setNextVerifyDate] = useState('')
   const [replaceConfirm, setReplaceConfirm] = useState(false)
 
-  // регистрация счётчиков воды
   const [waterMeterType, setWaterMeterType] = useState<WaterMeterType>('cold')
   const [serialNumber, setSerialNumber] = useState('')
   const [installedAt, setInstalledAt] = useState(formatDateInput(new Date()))
