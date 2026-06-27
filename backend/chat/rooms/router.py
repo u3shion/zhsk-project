@@ -1,10 +1,29 @@
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from core.database import get_db
+from core.config import SERVICE_KEY, USERS_SERVICE_URL
 from auth.dependencies import get_current_user, TokenData
 from models.chat import Room, RoomMember, Message
 from rooms.schemas import RoomCreate, RoomInvite, RoomResponse, RoomMemberResponse, MessageResponse
+
+SERVICE_HEADERS = {"x-service-key": SERVICE_KEY}
+
+
+def _get_user_contact(user_id: int) -> dict | None:
+    try:
+        resp = httpx.get(
+            f"{USERS_SERVICE_URL}/users/internal/contact/{user_id}",
+            headers=SERVICE_HEADERS,
+            timeout=5.0,
+        )
+        if resp.status_code == 404:
+            return None
+        resp.raise_for_status()
+        return resp.json()
+    except httpx.HTTPError:
+        return None
 
 router = APIRouter(prefix="/rooms", tags=["rooms"])
 
@@ -105,7 +124,16 @@ def get_members(
 ):
     room = _get_room_or_404(room_id, db)
     _require_member(room, current_user.user_id)
-    return room.members
+    result = []
+    for member in room.members:
+        contact = _get_user_contact(member.user_id)
+        result.append(RoomMemberResponse(
+            user_id=member.user_id,
+            full_name=contact.get("full_name") if contact else None,
+            apartment=contact.get("apartment") if contact else None,
+            joined_at=member.joined_at,
+        ))
+    return result
 
 
 @router.get("/{room_id}/messages", response_model=list[MessageResponse])

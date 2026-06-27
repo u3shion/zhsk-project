@@ -3,6 +3,7 @@ import ProfileIcon from '../assets/ProfileIcon'
 import HomeIcon from '../assets/HomeIcon'
 import NewsIcon from '../assets/NewsIcon'
 import MetersIcon from '../assets/MetersIcon'
+import ChatIcon from '../assets/ChatIcon'
 import './Layout.css'
 
 interface LayoutProps {
@@ -32,6 +33,10 @@ export default function Layout({ children }: LayoutProps) {
           <Link to="/meters" className={`nav-item ${isActive('/meters') ? 'active' : ''}`}>
             <MetersIcon className="nav-icon" />
             Показания
+          </Link>
+          <Link to="/chat" className={`nav-item ${isActive('/chat') ? 'active' : ''}`}>
+            <ChatIcon className="nav-icon" />
+            Чаты
           </Link>
           <Link to="/profile" className={`nav-item ${isActive('/profile') ? 'active' : ''}`}>
             <ProfileIcon className="nav-icon" />

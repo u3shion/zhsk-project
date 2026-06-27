@@ -24,6 +24,8 @@ class RoomResponse(BaseModel):
 
 class RoomMemberResponse(BaseModel):
     user_id: int
+    full_name: str | None = None
+    apartment: str | None = None
     joined_at: datetime
 
     model_config = {"from_attributes": True}
