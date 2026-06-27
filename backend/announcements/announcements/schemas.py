@@ -1,38 +1,7 @@
 from datetime import datetime
-from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, field_validator
-
-
-class AnnouncementType(str, Enum):
-    news = "news"
-    ad = "ad"
-
-
-class AnnouncementSubtype(str, Enum):
-    service = "service"
-    noise = "noise"
-
-
-class AnnouncementCreate(BaseModel):
-    type: AnnouncementType
-    subtype: Optional[AnnouncementSubtype] = None
-    title: str
-    content: str
-
-    @field_validator("subtype")
-    @classmethod
-    def subtype_required_for_ad(cls, v, info):
-        if info.data.get("type") == AnnouncementType.ad and v is None:
-            raise ValueError("subtype is required for ads (service or noise)")
-        return v
-
-
-class AnnouncementUpdate(BaseModel):
-    title: Optional[str] = None
-    content: Optional[str] = None
-    subtype: Optional[AnnouncementSubtype] = None
 
 
 class AnnouncementResponse(BaseModel):

@@ -12,7 +12,6 @@ from models.notification_log import NotificationLog
 from notifications.schemas import (
     BroadcastRequest,
     NotificationHistoryResponse,
-    ResidentResponse,
     ResidentsResponse,
     SendRequest,
 )

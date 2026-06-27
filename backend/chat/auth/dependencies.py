@@ -35,10 +35,6 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     return _parse_token(credentials.credentials)
 
 
-def get_current_user_ws(token: str = Query(..., alias="token")) -> TokenData:
-    return _parse_token(token)
-
-
 def require_admin(current_user: TokenData = Depends(get_current_user)) -> TokenData:
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
